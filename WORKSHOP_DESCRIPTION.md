@@ -15,6 +15,6 @@ Subscribe with ModTheSpire and BaseMod. Windows and both Mac architectures inclu
 
 [源码与下载 / Source & downloads](https://github.com/Yongzhaooo/sts1-combat-solver)
 
-v0.8.0-beta.1: Adds π 2.6 loop search and route reduction, coordinated timeouts and actual search progress. Automatic T1 Smoke Bomb probes 12,000 potion-free simulations and escapes unless a win loses under 15 HP; only an already-held Reaper and immediate strength may precede escape. Entropic Brew considers freeing slots first; White Beast Statue encourages potion use when rewards are available. F6 includes ordered plays, selections and hand order for five recent fights and the current fight. Burning Pact import/reselection remains deferred. Full live-game runs remain untested. Thanks to 七月流火 (七月火), ૭٩奶油糖果, 幼猫（浪花） for validation, and 严肃研究鸡煲打法中 for selection and loop ideas.
+v0.8.0-beta.3: Fixed autoplay stopping at the card picker when a hand selection such as Burning Pact is the route's last step. In the Heart fight the search no longer keeps looping past the 200-damage cap until it runs out of HP, so it can find wins that need to end the turn. Corruption costs for Enlightenment+ and Secret Technique now match the game. Some Heart fights that rely on retries and Gambler's Brew may still be judged lost. Burning Pact mid-selection import and selection changes remain deferred. Thanks to 七月流火（七月火）.
 
 Silent, Defect and Watcher solvers are open for collaboration: see CONTRIBUTING.md on GitHub or write to yongzhao.derek@gmail.com.

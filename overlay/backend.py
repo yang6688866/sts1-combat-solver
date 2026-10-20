@@ -31,6 +31,7 @@ from auto_policy import recommend, smoke_opening, smoke_probe_keeps, smoke_thres
 from solver_search import DEEP_BUDGET, boss_fast_plan, finalize_plan, search_plan
 from runtime_files import OVERLAY_FILES
 from search_status import search_timeout
+from worker_policy import worker_limit, background_priority
 
 ROOT = Path(__file__).resolve().parents[1]
 REPO = ROOT / 'candidates/sts-ironclad-agent'
@@ -208,6 +209,7 @@ class Advisor:
         self.searching = []
         self.interrupt = threading.Event()
         self.manual_choice = False
+        self.max_workers = worker_limit()
 
     def phase(self, name):
         if hasattr(self, 'on_phase'):
@@ -347,7 +349,7 @@ class Advisor:
             if len(strength_slots) > 1:
                 stages[0].extend((smoke, *strength_slots) for smoke in smoke_slots)
         self.searching = []
-        pool = ThreadPoolExecutor(max_workers=max(1, 2 ** len(potions)))
+        pool = ThreadPoolExecutor(max_workers=min(self.max_workers, max(1, 2 ** len(potions))))
         try:
             for stage in stages:
                 futures = {}
@@ -396,9 +398,9 @@ class Advisor:
                               if (n == 2 or n == len(potions)) and (not good or bool(brew_slots.intersection(c)))]
                     stages.append(combos)
         finally:
-            # Unneeded or abandoned branches stop at their next round; do not wait for them.
+            # Drain cancelled branches before the next request can resume native search.
             self.native_search.cancel()
-            pool.shutdown(wait=False)
+            pool.shutdown(wait=True, cancel_futures=True)
             self.searching = []
         # Keep no-potion and single bottles in slot order; best bottle sets first after them.
         head, sets = self.branch_info[:1 + len(potions)], self.branch_info[1 + len(potions):]
@@ -476,7 +478,7 @@ class Advisor:
         searching = [(index, branch_id, name + (' / 用药' if option else ' / 不用药'))
                      for index, (branch_id, name, _, option) in enumerate(jobs)]
         self.searching = searching[:1]
-        pool = ThreadPoolExecutor(max_workers=min(4, len(jobs)))
+        pool = ThreadPoolExecutor(max_workers=min(self.max_workers, len(jobs)))
         try:
             self.phase('优先深搜：不交药击杀盗贼')
             first = pool.submit(self.search_plan, self.root, max(budget, DEEP_BUDGET),
@@ -531,7 +533,7 @@ class Advisor:
                                              'message': '本轮未找到完整路线'})
         finally:
             self.native_search.cancel()
-            pool.shutdown(wait=False)
+            pool.shutdown(wait=True, cancel_futures=True)
             self.searching = []
         if before != s.comparator.clone_fingerprint(s.battle):
             raise RuntimeError('搜索修改了输入快照')
@@ -661,7 +663,8 @@ class Advisor:
         # Same acceptance logic as LiveSearch, with production RNG validation in
         # view_from_state instead of the independent test-oracle requirement.
         s, action = self.search, self.pending
-        if not s.actions:
+        # action is None after a pure confirmation; the plan may already be empty then.
+        if not s.actions and action is not None:
             raise ValueError('没有可继续执行的路线')
         if action is None:
             if s.pending_multi is not None:
@@ -693,7 +696,8 @@ class Advisor:
 
     def result(self, view):
         s = self.search
-        if not s.actions:
+        # A final hand selection resolves natively but the Java picker still needs its confirm.
+        if not s.actions and not s.confirmation(view):
             return {'status': 'complete', 'message': '当前路线已执行完毕。'}
         # next_action prepares the first multi-select click and mutates its
         # transport queue. That preparation has not yet executed in the game.
@@ -786,6 +790,7 @@ class Advisor:
                                 for b in self.branch_info)))}
 
     def handle(self, request):
+        self.max_workers = worker_limit(request.get('search_workers', 0))
         view = view_from_state(request['state'])
         budget = request.get('budget', 8000)
         if type(budget) is not int or budget not in (2000, 8000, DEEP_BUDGET):
@@ -817,6 +822,7 @@ def report_progress(advisor, connection, request, stop, send_lock):
 
 
 def worker(connection, interrupt):
+    priority = background_priority()
     for s in (sys.stdin, sys.stdout, sys.stderr):
         if hasattr(s, 'reconfigure'):
             try:
@@ -871,6 +877,8 @@ def worker(connection, interrupt):
                 reporter.start()
             try:
                 result = advisor.handle(request)
+                result['search_workers'] = advisor.max_workers
+                result['search_priority'] = priority
                 if request['op'] in ('solve', 'choose'):
                     result['_plan'] = advisor.plan
                 flush_suppressed()
@@ -1061,7 +1069,7 @@ def serve(runs_dir=None):
                         reports.flush()
                         seed = request.get('seed') or reports.runs_seed()
                         target = export_run(runs_dir, seed, request['directory'], request.get('metadata'),
-                                            request.get('recent_battles'))
+                                            request.get('recent_battles'), request.get('shop_history'))
                         answer = {'status': 'debug_run_export', 'file': target.name, 'directory': str(target.parent)}
                     except Exception as failure:
                         answer = {'status': 'debug_error', 'message': str(failure)}
