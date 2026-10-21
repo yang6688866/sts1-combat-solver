@@ -17,8 +17,13 @@ function Compile-Mod($name, $sourceFiles, $metadata, $classpath) {
     New-Item -ItemType Directory -Force -Path $classes | Out-Null
     $list = Join-Path $out "$name-sources.txt"
     [IO.File]::WriteAllLines($list, @($sourceFiles | ForEach-Object { '"' + $_.FullName.Replace('\','/') + '"' }), $utf8)
+    # javac writes its "source value 8 is obsolete" note to stderr; with
+    # $ErrorActionPreference = 'Stop' PowerShell would abort the build on it, so the
+    # exit code below is the only success signal that counts.
+    $ErrorActionPreference = 'Continue'
     & javac '-J-Dfile.encoding=UTF-8' '-J-Duser.language=en' -g -proc:none -encoding UTF-8 --release 8 -cp $classpath -d $classes "@$list"
-    if ($LASTEXITCODE -ne 0) { throw "$name compile failed" }
+    if ($LASTEXITCODE -ne 0) { $ErrorActionPreference = 'Stop'; throw "$name compile failed" }
+    $ErrorActionPreference = 'Stop'
     [IO.File]::WriteAllText((Join-Path $classes 'ModTheSpire.json'), $metadata, $utf8)
     if ($name -eq 'STS1CombatSolver') {
         Copy-Item -Path "$PSScriptRoot\resources\*" -Destination $classes -Recurse -Force
