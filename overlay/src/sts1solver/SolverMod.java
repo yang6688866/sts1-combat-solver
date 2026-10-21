@@ -130,11 +130,19 @@ public class SolverMod implements PostUpdateSubscriber, PostRenderSubscriber, Po
     private String autoReason = "";
     private PotionRewards.Advice rewardPotionAdvice;
     private PotionRewards.Pending rewardPotionPending;
-    private int budgetIndex = 1, scroll, startingTurn;
+    private int scroll, startingTurn;
     private int executedTurn;
     private String executedCommand = "";
-    private final int[] budgets = {2000, 8000, 128000};
-    private final String[] budgetNames = {"快速", "标准", "深入"};
+    // Every request asks for the standard budget; the backend tiers it per act and room (low-performance mode: 1/20).
+    private static final int BUDGET = 8000;
+    private boolean highSpeed;
+    private long highSpeedWarnedAt;
+    /** Agent play (AGENT_PLAY.md): outside choices come from a file an external agent writes; fights run automatically. */
+    private boolean agentBridge;
+    private long agentDecision;
+    private OutsidePacket agentPacket;
+    private String agentError = "", agentWritten = "";
+    private Path agentDirectory;
     private String status = I18n.t("等待进入战斗"), error = "";
     // Compact combat panel: summary card left, five route rows right, then actions and toggles.
     private static final float PANEL_WIDTH = 640;
@@ -235,6 +243,8 @@ public class SolverMod implements PostUpdateSubscriber, PostRenderSubscriber, Po
             defaults.setProperty("brightEyeMode", "false"); // beyond-SL display hints are opt-in; no policy reads them
             defaults.setProperty("bossFastFinish", "false"); // new key: every player starts with the standard Boss search
             defaults.setProperty("feedMode", "false");
+            defaults.setProperty("highSpeed", "false");
+            defaults.setProperty("agentBridge", "false");
             defaults.setProperty("smokeProbeBudget", "12000");
             defaults.setProperty("smokeLossThreshold", "15");
             defaults.setProperty("searchWorkers", "0");
@@ -252,6 +262,8 @@ public class SolverMod implements PostUpdateSubscriber, PostRenderSubscriber, Po
             Foresight.brightEyeMode = config.getBool("brightEyeMode");
             bossFastFinishEnabled = config.getBool("bossFastFinish");
             feedModeEnabled = config.getBool("feedMode");
+            highSpeed = config.getBool("highSpeed");
+            agentBridge = config.getBool("agentBridge");
             smokeProbeBudget = Math.max(1,Math.min(128000,config.getInt("smokeProbeBudget")));
             smokeLossThreshold = Math.max(0,config.getInt("smokeLossThreshold"));
             try { searchWorkers = Math.max(0, Math.min(32, config.getInt("searchWorkers"))); }
@@ -504,6 +516,7 @@ public class SolverMod implements PostUpdateSubscriber, PostRenderSubscriber, Po
             AbstractDungeon.bossList==null?0:AbstractDungeon.bossList.size(),
             AbstractDungeon.player!=null && AbstractDungeon.player.hasRelic("Mark of the Bloom")));
         out.addProperty("feed_mode",feedModeEnabled);
+        out.addProperty("high_speed",highSpeed);
         out.addProperty("run_auto",runAuto);
         out.addProperty("smoke_probe_budget",smokeProbeBudget);
         out.addProperty("smoke_loss_threshold",smokeLossThreshold);
@@ -618,6 +631,82 @@ public class SolverMod implements PostUpdateSubscriber, PostRenderSubscriber, Po
         auto=combat(); paused=false; decisionDirty=true;
     }
 
+    /** Step mode for outside choices, which the agent confirms, plus automatic fights. F9 hands both back to the player. */
+    private void startAgentMode() {
+        chooseOutsideMode(1);
+        runAuto=true; runAutoPlayer=AbstractDungeon.player;
+        auto=combat(); paused=false; decisionDirty=true;
+        outsideNotice=I18n.t("Agent 模式：局外由 agent 决定，战斗自动执行 · F9 接管");
+    }
+
+    /**
+     * Writes agent/decision.json whenever the outside choice or the run status changes, and applies
+     * agent/command.txt: "<decision> <index>" confirms one listed choice, "resume" re-enters agent mode.
+     * The confirmed choice goes through the same checks as a click on the panel.
+     */
+    private void syncAgent() {
+        try {
+            if(agentDirectory==null)agentDirectory=Files.createDirectories(notesDirectory("agent"));
+            Path command=agentDirectory.resolve("command.txt");
+            if(Files.exists(command)) {
+                String text=new String(Files.readAllBytes(command),StandardCharsets.UTF_8).trim();
+                Files.delete(command);
+                int index=agentPending()?RunMode.agentChoice(text,agentDecision,outsidePacket.choices.size()):-1;
+                if(text.equals("resume") && inSupportedRun()) { startAgentMode(); agentError=""; }
+                else if(index>=0) { outsideChosen=index; outsideConfirm=true; agentError=""; }
+                else agentError="ignored command (stale decision or invalid index): "+text;
+            }
+            boolean pending=agentPending();
+            if(pending && outsidePacket!=agentPacket) { agentPacket=outsidePacket; agentDecision++; }
+            String phase=!inSupportedRun()?"no_run":AbstractDungeon.player.isDead?"dead":combat()?"combat":pending?"choose":"waiting";
+            boolean agentMode=outsideMode==1 && runAuto;
+            String key=(pending?agentDecision:0)+"|"+phase+"|"+agentMode+"|"+outsideNotice+"|"+agentError+"|"+rngWarning;
+            if(key.equals(agentWritten))return; // the full packet is rebuilt only when this summary changes
+            JsonObject out=new JsonObject();
+            out.addProperty("decision",pending?agentDecision:0);
+            out.addProperty("agent_mode",agentMode);
+            out.addProperty("phase",phase);
+            out.addProperty("notice",outsideNotice);
+            out.addProperty("error",agentError);
+            JsonArray warnings=new JsonArray();  // what the settings page shows, for an agent that cannot see the panel
+            if(Loader.isModLoaded("SaveStateMod") || Loader.isModLoaded("undothespire") || Loader.isModLoaded("undobutton"))
+                warnings.add(I18n.t("检测到不兼容 Mod（SaveStateMod / Undo）：会破坏战斗选牌与状态同步，建议禁用"));
+            if(!rngWarning.isEmpty())warnings.add(rngWarning);
+            out.add("mod_warnings",warnings);
+            if(pending) {
+                JsonObject game=new JsonObject();
+                for(String field:new String[]{"class","ascension_level","act","floor","current_hp","max_hp","gold","act_boss",
+                        "room_type","screen_type","screen_state","deck","relics","potions","keys","map"})
+                    if(outsidePacket.game.has(field))game.add(field,outsidePacket.game.get(field));
+                out.add("game",game);
+                out.add("visible",outsidePacket.visible);
+                JsonArray choices=new JsonArray();
+                for(int i=0;i<outsidePacket.choices.size();i++) {
+                    JsonObject choice=new JsonObject();
+                    choice.addProperty("index",i);
+                    choice.addProperty("label",outsidePacket.choices.get(i).label);
+                    choice.addProperty("solver_score",outsideScores.scores[i]);
+                    choices.add(choice);
+                }
+                out.add("choices",choices);
+                out.addProperty("solver_pick",outsideScores.best);
+                if(outsidePacket.ruleNote!=null)out.addProperty("solver_rule",outsidePacket.ruleNote);
+            }
+            Path temp=agentDirectory.resolve("decision.json.tmp");
+            Files.write(temp,gson.toJson(out).getBytes(StandardCharsets.UTF_8));
+            Files.move(temp,agentDirectory.resolve("decision.json"),StandardCopyOption.REPLACE_EXISTING,StandardCopyOption.ATOMIC_MOVE);
+            agentWritten=key;
+            if(error.startsWith(I18n.t("Agent 通道读写失败：")))error="";
+        } catch(IOException failure) {
+            // Retried next frame: on Windows the replace fails while the agent holds the file open.
+            error=I18n.t("Agent 通道读写失败：")+failure.getMessage();
+        }
+    }
+
+    private boolean agentPending() {
+        return outsideMode==1 && outsidePacket!=null && outsideScores!=null && !outsideConfirm && !combat();
+    }
+
     /**
      * The original game keeps a skipped card reward listed and lets the merchant be reopened;
      * remember both per floor so the pilot moves on instead of looping.
@@ -643,6 +732,7 @@ public class SolverMod implements PostUpdateSubscriber, PostRenderSubscriber, Po
             outsidePacket=null; outsideStatePacket=null; outsideScores=null; outsideAwaiting=false;
             outsidePilotRun=false; outsideFailed=false;
             outsideNotice=I18n.t("新一局：选【人工逐步】每步确认，【战斗全自动】只自动打战斗，或【AI全自动】完全托管");
+            if(agentBridge)startAgentMode();
         }
         if(outsidePrompt) return;
         if(outsideMode==0 || combat() || AbstractDungeon.player.isDead || rewardPotionPending!=null) return;
@@ -897,9 +987,9 @@ public class SolverMod implements PostUpdateSubscriber, PostRenderSubscriber, Po
         JsonObject request = new JsonObject();
         request.addProperty("id", ++serial);
         request.addProperty("op", op);
-        request.addProperty("budget", budgets[budgetIndex]);
+        request.addProperty("budget", BUDGET);
         request.addProperty("search_workers", searchWorkers);
-        if (!op.equals("cancel")) searchTimeoutMillis = SearchStatus.timeoutMillis(budgets[budgetIndex]);
+        if (!op.equals("cancel")) searchTimeoutMillis = SearchStatus.timeoutMillis(BUDGET);
         if (op.equals("choose")) request.addProperty("branch", chosenBranch);
         if (op.equals("solve")) request.addProperty("progress", true);
         if (!op.equals("cancel")) {
@@ -1184,6 +1274,7 @@ public class SolverMod implements PostUpdateSubscriber, PostRenderSubscriber, Po
         wasCombat = inCombat;
         if(!inCombat && outsideMode!=0)updatePotionRewards();
         updateOutside();
+        if(agentBridge)syncAgent();
         updateRoute();
         updateDeckChanges();
         if (!inCombat) {
@@ -1584,7 +1675,10 @@ public class SolverMod implements PostUpdateSubscriber, PostRenderSubscriber, Po
                 float spacing=(w-24)/(canCreditRest()?3:2);
                 if ((lx-16)%spacing < spacing-8) {
                     int toggle=(int)((lx-16)/spacing);
-                    if (toggle==0) { budgetIndex=(budgetIndex+1)%3; recalculate(); }
+                    if (toggle==0) {
+                        highSpeed=!highSpeed; saveSetting("highSpeed", highSpeed); recalculate();
+                        highSpeedWarnedAt=highSpeed?System.currentTimeMillis():0;
+                    }
                     else if (toggle==1) togglePotionRewards();
                     else { nextRest=!nextRest; recalculate(); }
                 }
@@ -1771,6 +1865,8 @@ public class SolverMod implements PostUpdateSubscriber, PostRenderSubscriber, Po
         box(sb,w-118,8,64,28,settingsOpen?accent:surface);
         label(sb,I18n.t(settingsOpen?"返回":"设置"),w-108,12,48,.85f,settingsOpen?background:accent);
         String revivalWarning = result == null ? "" : revivalWarning(result);
+        if (revivalWarning.isEmpty() && highSpeed && System.currentTimeMillis()-highSpeedWarnedAt < 8000)
+            revivalWarning = I18n.t("高速模式：搜索量 1/20，胜率和省血下降");
         label(sb,revivalWarning.isEmpty()?status:revivalWarning,16,48,ROUTE_LEFT-28,.85f,
             revivalWarning.isEmpty() && error.isEmpty()?muted:danger);
         String note=researchRecording?voiceNotes.status():debugMessage;
@@ -1786,14 +1882,14 @@ public class SolverMod implements PostUpdateSubscriber, PostRenderSubscriber, Po
                 :i==3&&outsideMode!=2&&(runAuto||auto)?accent:i==2&&result==null?muted:Color.WHITE);
         }
         List<String> toggles=new ArrayList<>(Arrays.asList(
-            I18n.t("搜索预算：")+I18n.t(budgetNames[budgetIndex]),
+            I18n.t("高速模式：")+I18n.t(highSpeed?"开":"关"),
             I18n.t("自动换药：")+I18n.t(autoPotionRewards?"开":"关")));
         if(canCreditRest())toggles.add(I18n.t("羽毛回血：")+I18n.t(nextRest?"是":"仅必经火堆"));
         float spacing=(w-24)/toggles.size();
         for(int i=0;i<toggles.size();i++) {
             box(sb,16+i*spacing,TOGGLES_TOP,spacing-8,28,surface);
             label(sb,toggles.get(i),24+i*spacing,TOGGLES_TOP+5,spacing-24,.8f,
-                i==1?(autoPotionRewards?accent:muted):accent);
+                i==0?(highSpeed?danger:muted):i==1?(autoPotionRewards?accent:muted):accent);
         }
         sb.setColor(Color.WHITE);
         cursorOnTop(sb);
