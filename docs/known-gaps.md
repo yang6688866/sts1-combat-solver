@@ -62,6 +62,16 @@ Focus、姿态、宝珠层数都不进这个式子。结果是"铺垫牌"（Defr
 
 **为什么还没做。** 优先级低于修 bug。
 
+### 2.3 没有逐张核对数值的测试
+
+**现象。** `defect_cards_test.cpp` 有 205 条 `check(...)`，覆盖的是**行为**（打出后发生了什么），没有一条是"逐张核对数字"的。`DefectCards.cpp` 里 74 个 case、63 处 `up ?` 三元，升级形态的数值基本没被测到。
+
+后果：2026-10-22 的字节码审计查出 `BULLSEYE` 完全漏了 8/11 点伤害、Lock-On 层数少 1，而当时那套测试**全绿**。
+
+**为什么还没做。** 需要先有一张权威数值表。已有：`E:\sts-devkit\tools\extract_card_numbers.py` 从字节码提取全部 76 张蓝牌的 `cost/dmg/block/magic`（基础→升级），`verify_card_numbers.py` 做逐张对比（当前 73 张 0 findings）。
+
+**怎么验证。** 写 `tests/defect_card_values_test.cpp`：表驱动，每张牌基础+升级两态，断言打出去之后的实际变化；再加一条防漏断言，遍历 `DefectCards.cpp` 全部 `case CardId::`，蓝牌必须在表里出现。细节见 `docs/notes/2026-10-22.md`。
+
 ---
 
 ## 三、构建与发布
