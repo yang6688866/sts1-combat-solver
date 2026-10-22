@@ -162,6 +162,11 @@ def scan(paths):
 
 
 def main():
+    if "-h" in sys.argv[1:] or "--help" in sys.argv[1:]:
+        print(__doc__)
+        print("usage: _card_usage.py [log.jsonl ...]\n"
+              "  No arguments reads every log in the STS_TEST_LOGS directory.")
+        return
     paths = behaviour_logs()
     if len(sys.argv) > 1:
         paths = [Path(p) for p in sys.argv[1:]]

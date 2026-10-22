@@ -12,6 +12,11 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from _paths import behaviour_logs  # noqa: E402
 
+if '-h' in sys.argv[1:] or '--help' in sys.argv[1:]:
+    print(__doc__)
+    print('usage: _card_stats.py   (always reads every log in STS_TEST_LOGS)')
+    raise SystemExit(0)
+
 offered = Counter()
 played = Counter()
 turns = 0

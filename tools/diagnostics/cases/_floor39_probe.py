@@ -7,7 +7,7 @@ import json
 import sys
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[2]
+ROOT = Path(__file__).resolve().parents[3]
 AGENT = ROOT / "candidates" / "sts-ironclad-agent"
 sys.path[:0] = [str(AGENT / "runtime" / "engine"), str(AGENT), str(AGENT / "steam"),
                 str(AGENT / "sim_patch" / "alignment" / "tests"),

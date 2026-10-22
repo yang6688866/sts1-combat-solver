@@ -6,7 +6,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from _barrage_engine import ALIASES, card  # noqa: E402
 
-ROOT = Path(__file__).resolve().parents[2]
+ROOT = Path(__file__).resolve().parents[3]
 sys.path.insert(0, str(ROOT / 'candidates/sts-ironclad-agent/runtime/engine'))
 sys.path.insert(0, str(ROOT / 'candidates/sts-ironclad-agent'))
 import slaythespire as sts  # noqa: E402

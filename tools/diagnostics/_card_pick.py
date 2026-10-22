@@ -52,6 +52,10 @@ def plan_for(rec, costs, budget):
 
 
 def main():
+    if len(sys.argv) < 2 or sys.argv[1] in ("-h", "--help"):
+        print(__doc__)
+        print("usage: _card_pick.py <card id> [budget]")
+        return
     target = sys.argv[1]
     budget = int(sys.argv[2]) if len(sys.argv) > 2 else 3000
     costs = dict(usage.COSTS)

@@ -252,6 +252,10 @@ def build(rec, costs):
 
 
 def main():
+    if len(sys.argv) < 4 or sys.argv[1] in ('-h', '--help'):
+        print(__doc__)
+        print('usage: _plan_cards.py <log.jsonl> <floor> <turn> [budget]')
+        return
     path = Path(sys.argv[1])
     floor, turn = int(sys.argv[2]), int(sys.argv[3])
     budget = int(sys.argv[4]) if len(sys.argv) > 4 else 4000
