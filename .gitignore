@@ -7,3 +7,8 @@ __pycache__/
 
 # 一次性诊断产物与本地日志
 tools/_*.done
+
+# 反编译的原版游戏代码：Mega Crit 的版权，不能进公开仓库。
+# 工具与索引在 E:\sts-devkit\decompiled\
+references/game-src/
+*.decompiled/
