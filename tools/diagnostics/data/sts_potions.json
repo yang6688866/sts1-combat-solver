@@ -1,0 +1,378 @@
+{
+  "meta": {
+    "source": "杀戮尖塔中文Wiki (sts.huijiwiki.com) 『药水小样』(Navbox药水) + 各药水详情页 infobox",
+    "source_url": "https://sts.huijiwiki.com/wiki/%E8%8D%AF%E6%B0%B4%E5%B0%8F%E6%A0%B7",
+    "fields": {
+      "name": "中文名(=wiki 页面标题)",
+      "id": "英文药水 id(infobox '药水 id';等同程序内部标识)",
+      "class": "所属职业:铁甲战士/静默猎手/故障机器人/观者/通用",
+      "rarity": "稀有度:普通/罕见/稀有",
+      "effects_zhs": "效果描述(中文)",
+      "image": "药水图标文件名"
+    },
+    "rarity_dist": {
+      "普通": 20,
+      "罕见": 12,
+      "稀有": 10
+    },
+    "class_dist": {
+      "通用": 30,
+      "铁甲战士": 3,
+      "观者": 3,
+      "故障机器人": 3,
+      "静默猎手": 3
+    },
+    "energy_tokens": {
+      "[R]": "暴怒",
+      "[G]": "灵活",
+      "[B]": "集中",
+      "[P]": "真言",
+      "[E]": "能量"
+    },
+    "processing": [
+      "药水infobox比遗物/卡牌更简单:仅有 效果中文/所属/稀有度 三字段,无英文描述、无引言。",
+      "忠实保留原站:『暗之精华』效果含未渲染颜色码 #b(灰机_sharp模板只转#b/#y/#r/#p为HTML span,此处因DOMParser取纯文本故保留了#b标记)。",
+      "熔炉的祝福:wiki图片名含'temporary',疑为临时/已移除药水(游戏正式版未出现);仍按原站收录。",
+      "文本清洗:仅去除连续空格/制表符/全角空格,不改动效果文字本身。"
+    ],
+    "total": 42
+  },
+  "potions": [
+    {
+      "name": "熔炉的祝福",
+      "id": "BlessingOfTheForge",
+      "class": "通用",
+      "rarity": "普通",
+      "effects_zhs": "在本场战斗中升级手牌中的所有牌。",
+      "image": "Blessing Of The Forge temporary.png"
+    },
+    {
+      "name": "敏捷药水",
+      "id": "Dexterity_Potion",
+      "class": "通用",
+      "rarity": "普通",
+      "effects_zhs": "获得 2 点敏捷。",
+      "image": "Dexterity Potion.png"
+    },
+    {
+      "name": "攻击药水",
+      "id": "AttackPotion",
+      "class": "通用",
+      "rarity": "普通",
+      "effects_zhs": "从 3 张随机攻击牌中选择 1 张加入你的手牌。这张牌在本回合耗能变为 0 。",
+      "image": "Attack Potion.png"
+    },
+    {
+      "name": "无色药水",
+      "id": "ColorlessPotion",
+      "class": "通用",
+      "rarity": "普通",
+      "effects_zhs": "从 3 张随机无色牌中选择 1 张加入你的手牌。这张牌在本回合耗能变为 0 。",
+      "image": "Colorless Potion .png"
+    },
+    {
+      "name": "格挡药水",
+      "id": "Block_Potion",
+      "class": "通用",
+      "rarity": "普通",
+      "effects_zhs": "获得 12 点格挡。",
+      "image": "Block Potion.png"
+    },
+    {
+      "name": "鲜血药水",
+      "id": "BloodPotion",
+      "class": "铁甲战士",
+      "rarity": "普通",
+      "effects_zhs": "回复最大生命值的 20% 。",
+      "image": "Blood Potion.png"
+    },
+    {
+      "name": "瓶装奇迹",
+      "id": "BottledMiracle",
+      "class": "观者",
+      "rarity": "普通",
+      "effects_zhs": "增加 2 张奇迹到你的手牌。",
+      "image": "BottledMiracle.png"
+    },
+    {
+      "name": "能量药水",
+      "id": "Energy_Potion",
+      "class": "通用",
+      "rarity": "普通",
+      "effects_zhs": "获得 2 点能量。",
+      "image": "Energy Potion.png"
+    },
+    {
+      "name": "爆炸药水",
+      "id": "Explosive_Potion",
+      "class": "通用",
+      "rarity": "普通",
+      "effects_zhs": "对所有敌人造成 10 点伤害。",
+      "image": "Explosive Potion.png"
+    },
+    {
+      "name": "集中药水",
+      "id": "FocusPotion",
+      "class": "故障机器人",
+      "rarity": "普通",
+      "effects_zhs": "获得 2 点集中。",
+      "image": "Focus Potion.png"
+    },
+    {
+      "name": "恐惧药水",
+      "id": "FearPotion",
+      "class": "通用",
+      "rarity": "普通",
+      "effects_zhs": "给予 3 层易伤。",
+      "image": "Fear Potion.png"
+    },
+    {
+      "name": "火焰药水",
+      "id": "Fire_Potion",
+      "class": "通用",
+      "rarity": "普通",
+      "effects_zhs": "造成 20 点伤害。",
+      "image": "Fire Potion.png"
+    },
+    {
+      "name": "毒药水",
+      "id": "Poison_Potion",
+      "class": "静默猎手",
+      "rarity": "普通",
+      "effects_zhs": "给予 6 层中毒。",
+      "image": "PoisonPotion.webp"
+    },
+    {
+      "name": "类固醇药水",
+      "id": "SteroidPotion",
+      "class": "通用",
+      "rarity": "普通",
+      "effects_zhs": "获得 5 点力量。在你的回合结束时，失去 5 点力量。",
+      "image": "Steroid Potion.png"
+    },
+    {
+      "name": "迅捷药水",
+      "id": "Swift_Potion",
+      "class": "通用",
+      "rarity": "普通",
+      "effects_zhs": "抽 3 张牌。",
+      "image": "Swift Potion.png"
+    },
+    {
+      "name": "速度药水",
+      "id": "SpeedPotion",
+      "class": "通用",
+      "rarity": "普通",
+      "effects_zhs": "获得 5 点敏捷。在你的回合结束时，失去 5 点敏捷。",
+      "image": "Speed Potion.png"
+    },
+    {
+      "name": "能力药水",
+      "id": "PowerPotion",
+      "class": "通用",
+      "rarity": "普通",
+      "effects_zhs": "从 3 张随机能力牌中选择 1 张加入你的手牌。这张牌在本回合耗能变为 0 。",
+      "image": "Power Potion.png"
+    },
+    {
+      "name": "虚弱药水",
+      "id": "Weak_Potion",
+      "class": "通用",
+      "rarity": "普通",
+      "effects_zhs": "给予 3 层虚弱。",
+      "image": "Weak Potion.png"
+    },
+    {
+      "name": "技能药水",
+      "id": "SkillPotion",
+      "class": "通用",
+      "rarity": "普通",
+      "effects_zhs": "从 3 张随机技能牌中选择 1 张加入你的手牌。这张牌在本回合耗能变为 0 。",
+      "image": "Skill Potion.png"
+    },
+    {
+      "name": "力量药水",
+      "id": "Strength_Potion",
+      "class": "通用",
+      "rarity": "普通",
+      "effects_zhs": "获得 2 点力量。",
+      "image": "Strength Potion.png"
+    },
+    {
+      "name": "先古药水",
+      "id": "Ancient_Potion",
+      "class": "通用",
+      "rarity": "罕见",
+      "effects_zhs": "获得 1 层人工制品。",
+      "image": "Ancient Potion.png"
+    },
+    {
+      "name": "狡诈药水",
+      "id": "CunningPotion",
+      "class": "静默猎手",
+      "rarity": "罕见",
+      "effects_zhs": "增加 3 张小刀+ 到你的手牌。",
+      "image": "CunningPotion.png"
+    },
+    {
+      "name": "精炼混沌",
+      "id": "DistilledChaos",
+      "class": "通用",
+      "rarity": "罕见",
+      "effects_zhs": "打出你抽牌堆顶部的 3 张牌。",
+      "image": "DistilledChaos Potion.png"
+    },
+    {
+      "name": "复制药水",
+      "id": "DuplicationPotion",
+      "class": "通用",
+      "rarity": "罕见",
+      "effects_zhs": "本回合你的下一张牌将被打出两次。",
+      "image": "Duplication Potion.png"
+    },
+    {
+      "name": "万灵药水",
+      "id": "ElixirPotion",
+      "class": "铁甲战士",
+      "rarity": "罕见",
+      "effects_zhs": "消耗任意张手牌。",
+      "image": "Elixir.png"
+    },
+    {
+      "name": "钢之精华",
+      "id": "EssenceOfSteel",
+      "class": "通用",
+      "rarity": "罕见",
+      "effects_zhs": "获得 4 层多层护甲。",
+      "image": "EssenceOfSteel.webp"
+    },
+    {
+      "name": "赌徒特酿",
+      "id": "GamblersBrew",
+      "class": "通用",
+      "rarity": "罕见",
+      "effects_zhs": "丢弃任意张牌，然后抽相同数量的牌。",
+      "image": "Gamble's Brew.png"
+    },
+    {
+      "name": "流动铜液",
+      "id": "LiquidBronze",
+      "class": "通用",
+      "rarity": "罕见",
+      "effects_zhs": "获得 3 点荆棘。",
+      "image": "LiquidBronze.webp"
+    },
+    {
+      "name": "液态记忆",
+      "id": "LiquidMemories",
+      "class": "通用",
+      "rarity": "罕见",
+      "effects_zhs": "选择弃牌堆中的一张牌放入你的手牌。这张牌在本回合的耗能变为 0 。",
+      "image": "LiquidMemories.png"
+    },
+    {
+      "name": "扩容药水",
+      "id": "PotionOfCapacity",
+      "class": "故障机器人",
+      "rarity": "罕见",
+      "effects_zhs": "获得 2 个充能球栏位。",
+      "image": "PotionofCapacity.png"
+    },
+    {
+      "name": "再生药水",
+      "id": "Regen_Potion",
+      "class": "通用",
+      "rarity": "罕见",
+      "effects_zhs": "获得 5 层再生。",
+      "image": "Regen Potion.png"
+    },
+    {
+      "name": "姿态药水",
+      "id": "StancePotion",
+      "class": "观者",
+      "rarity": "罕见",
+      "effects_zhs": "进入平静或 愤怒。",
+      "image": "StancePotion.png"
+    },
+    {
+      "name": "仙馔密酒",
+      "id": "Ambrosia",
+      "class": "观者",
+      "rarity": "稀有",
+      "effects_zhs": "进入神格姿态。",
+      "image": "Ambrosia.png"
+    },
+    {
+      "name": "邪教徒药水",
+      "id": "CultistPotion",
+      "class": "通用",
+      "rarity": "稀有",
+      "effects_zhs": "获得 1 层仪式。",
+      "image": "CultistPotion.png"
+    },
+    {
+      "name": "混沌药水",
+      "id": "EntropicBrew",
+      "class": "通用",
+      "rarity": "稀有",
+      "effects_zhs": "在所有空药水栏位中获得随机药水。",
+      "image": "EntropicBrew Potion.png"
+    },
+    {
+      "name": "暗之精华",
+      "id": "EssenceOfDarkness",
+      "class": "故障机器人",
+      "rarity": "稀有",
+      "effects_zhs": "每个充能球栏位生成 #b 个黑暗充能球。",
+      "image": "EssenceOfDarkness.png"
+    },
+    {
+      "name": "瓶中精灵",
+      "id": "FairyPotion",
+      "class": "通用",
+      "rarity": "稀有",
+      "effects_zhs": "当你要被杀死时，免死并回复到最大生命值的 30% ，丢弃这瓶药水。",
+      "image": "Fairy in a Bottle.png"
+    },
+    {
+      "name": "果汁",
+      "id": "Fruit_Juice",
+      "class": "通用",
+      "rarity": "稀有",
+      "effects_zhs": "获得 5 点最大生命。",
+      "image": "Fruit Juice.png"
+    },
+    {
+      "name": "罐装幽灵",
+      "id": "GhostInAJar",
+      "class": "静默猎手",
+      "rarity": "稀有",
+      "effects_zhs": "获得 1 层无实体。",
+      "image": "Ghost in a Jar.png"
+    },
+    {
+      "name": "铁之心",
+      "id": "HeartOfIron",
+      "class": "铁甲战士",
+      "rarity": "稀有",
+      "effects_zhs": "获得 6 层金属化。",
+      "image": "HeartofIron.png"
+    },
+    {
+      "name": "烟雾弹",
+      "id": "SmokeBomb",
+      "class": "通用",
+      "rarity": "稀有",
+      "effects_zhs": "从一场非Boss战斗中逃离，不获得任何奖励。",
+      "image": "Smoke Bomb.png"
+    },
+    {
+      "name": "异蛇之油",
+      "id": "SneckoOil",
+      "class": "通用",
+      "rarity": "稀有",
+      "effects_zhs": "抽 5 张牌。随机化你手牌的耗能。",
+      "image": "Snecko Oil.png"
+    }
+  ]
+}

@@ -1,0 +1,43 @@
+﻿中文名,英文id,所属,稀有度,效果,图标
+熔炉的祝福,BlessingOfTheForge,通用,普通,在本场战斗中升级手牌中的所有牌。,Blessing Of The Forge temporary.png
+敏捷药水,Dexterity_Potion,通用,普通,获得 2 点敏捷。,Dexterity Potion.png
+攻击药水,AttackPotion,通用,普通,从 3 张随机攻击牌中选择 1 张加入你的手牌。这张牌在本回合耗能变为 0 。,Attack Potion.png
+无色药水,ColorlessPotion,通用,普通,从 3 张随机无色牌中选择 1 张加入你的手牌。这张牌在本回合耗能变为 0 。,Colorless Potion .png
+格挡药水,Block_Potion,通用,普通,获得 12 点格挡。,Block Potion.png
+鲜血药水,BloodPotion,铁甲战士,普通,回复最大生命值的 20% 。,Blood Potion.png
+瓶装奇迹,BottledMiracle,观者,普通,增加 2 张奇迹到你的手牌。,BottledMiracle.png
+能量药水,Energy_Potion,通用,普通,获得 2 点能量。,Energy Potion.png
+爆炸药水,Explosive_Potion,通用,普通,对所有敌人造成 10 点伤害。,Explosive Potion.png
+集中药水,FocusPotion,故障机器人,普通,获得 2 点集中。,Focus Potion.png
+恐惧药水,FearPotion,通用,普通,给予 3 层易伤。,Fear Potion.png
+火焰药水,Fire_Potion,通用,普通,造成 20 点伤害。,Fire Potion.png
+毒药水,Poison_Potion,静默猎手,普通,给予 6 层中毒。,PoisonPotion.webp
+类固醇药水,SteroidPotion,通用,普通,获得 5 点力量。在你的回合结束时，失去 5 点力量。,Steroid Potion.png
+迅捷药水,Swift_Potion,通用,普通,抽 3 张牌。,Swift Potion.png
+速度药水,SpeedPotion,通用,普通,获得 5 点敏捷。在你的回合结束时，失去 5 点敏捷。,Speed Potion.png
+能力药水,PowerPotion,通用,普通,从 3 张随机能力牌中选择 1 张加入你的手牌。这张牌在本回合耗能变为 0 。,Power Potion.png
+虚弱药水,Weak_Potion,通用,普通,给予 3 层虚弱。,Weak Potion.png
+技能药水,SkillPotion,通用,普通,从 3 张随机技能牌中选择 1 张加入你的手牌。这张牌在本回合耗能变为 0 。,Skill Potion.png
+力量药水,Strength_Potion,通用,普通,获得 2 点力量。,Strength Potion.png
+先古药水,Ancient_Potion,通用,罕见,获得 1 层人工制品。,Ancient Potion.png
+狡诈药水,CunningPotion,静默猎手,罕见,增加 3 张小刀+ 到你的手牌。,CunningPotion.png
+精炼混沌,DistilledChaos,通用,罕见,打出你抽牌堆顶部的 3 张牌。,DistilledChaos Potion.png
+复制药水,DuplicationPotion,通用,罕见,本回合你的下一张牌将被打出两次。,Duplication Potion.png
+万灵药水,ElixirPotion,铁甲战士,罕见,消耗任意张手牌。,Elixir.png
+钢之精华,EssenceOfSteel,通用,罕见,获得 4 层多层护甲。,EssenceOfSteel.webp
+赌徒特酿,GamblersBrew,通用,罕见,丢弃任意张牌，然后抽相同数量的牌。,Gamble's Brew.png
+流动铜液,LiquidBronze,通用,罕见,获得 3 点荆棘。,LiquidBronze.webp
+液态记忆,LiquidMemories,通用,罕见,选择弃牌堆中的一张牌放入你的手牌。这张牌在本回合的耗能变为 0 。,LiquidMemories.png
+扩容药水,PotionOfCapacity,故障机器人,罕见,获得 2 个充能球栏位。,PotionofCapacity.png
+再生药水,Regen_Potion,通用,罕见,获得 5 层再生。,Regen Potion.png
+姿态药水,StancePotion,观者,罕见,进入平静或 愤怒。,StancePotion.png
+仙馔密酒,Ambrosia,观者,稀有,进入神格姿态。,Ambrosia.png
+邪教徒药水,CultistPotion,通用,稀有,获得 1 层仪式。,CultistPotion.png
+混沌药水,EntropicBrew,通用,稀有,在所有空药水栏位中获得随机药水。,EntropicBrew Potion.png
+暗之精华,EssenceOfDarkness,故障机器人,稀有,每个充能球栏位生成 #b 个黑暗充能球。,EssenceOfDarkness.png
+瓶中精灵,FairyPotion,通用,稀有,当你要被杀死时，免死并回复到最大生命值的 30% ，丢弃这瓶药水。,Fairy in a Bottle.png
+果汁,Fruit_Juice,通用,稀有,获得 5 点最大生命。,Fruit Juice.png
+罐装幽灵,GhostInAJar,静默猎手,稀有,获得 1 层无实体。,Ghost in a Jar.png
+铁之心,HeartOfIron,铁甲战士,稀有,获得 6 层金属化。,HeartofIron.png
+烟雾弹,SmokeBomb,通用,稀有,从一场非Boss战斗中逃离，不获得任何奖励。,Smoke Bomb.png
+异蛇之油,SneckoOil,通用,稀有,抽 5 张牌。随机化你手牌的耗能。,Snecko Oil.png
