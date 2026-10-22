@@ -49,7 +49,7 @@ for e in d['events']:
 " fixtures/bug-reports/<文件>
 ```
 
-要重放到引擎里，见 `docs/local-environment.md` 和 `tools/diagnostics/` 下对应的 `cases/` 脚本（`_floor39_*` 系列读的就是 F39 的那两个文件）。
+要重放到引擎里，照 `tools/diagnostics/_search_plan.py` 的写法重建局面：从 `events` 里挑一条 `reply` 取完整状态和 `rngs`，喂给 `slaythespire.BattleContext`。环境说明见 `docs/local-environment.md`。
 
 ## 加新夹具
 

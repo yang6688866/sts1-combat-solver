@@ -81,21 +81,15 @@ candidates/sts-ironclad-agent/combat_engine/CMakeLists.txt   M   注册新测试
 
 ## 第三组：不该进 PR 的（留在本地）
 
-### 3.1 一次性诊断脚本（20 个，约 1250 行）
+### 3.1 一次性诊断脚本（20 个，约 1250 行）— 已删除
 
-`tools/diagnostics/cases/` 下的全部 `_*.py`：
+`tools/diagnostics/cases/` 下曾有 20 个复现脚本（`_barrage*`、`_cables*`、`_f39_*`、`_floor39_*`、`repro_*` 等），**已全部删除**。
 
-```
-_barrage.py  _barrage_damage.py  _barrage_engine.py  _barrage_value.py  _barrage_vs.py
-_cables_only.py  _cables_probe2.py  _cables_repro.py  _cmp_jars.py
-_f39_drop.py  _f39_full.py  _f39_turn1end.py
-_floor39_probe.py  _floor39_relics.py  _floor39_rolls.py  _floor39_trace.py
-_probe_run.py  repro_floor39.py  repro_floor39_real.py  repro_reboot.py
-```
+理由：每个都是为当次定位临时写的，硬编码了具体局面的参数（某一局的日志文件、某个 floor、某只怪）。日志目录一搬走就全部跑不通，留着只会让人以为它们是可用工具。
 
-理由：每个都是一次性复现脚本，硬编码了具体局面的参数。上游没有对应的日志文件，跑不起来。留在本地分支自己用。
+保留的是 `tools/diagnostics/` 下 6 个会被反复使用的工具（`_paths.py`、`_search_plan.py`、`_plan_cards.py`、`_card_usage.py`、`_card_pick.py`、`_card_stats.py`）。
 
-**例外**：如果第一组或第二组里有 bug 需要"这个 bug 怎么复现"的证据，把对应的那一个脚本一起带上。
+如果某个 bug 的修复需要"这怎么复现"的证据，照 `_search_plan.py` 的写法现写一个，连同修复一起提交。
 
 ### 3.2 游戏数据表（8 个文件，464KB）
 

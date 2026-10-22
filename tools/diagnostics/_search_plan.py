@@ -2,8 +2,8 @@
 
 The snapshot is rebuilt from a recorded card_play record (which carries the
 pre-play hand, energy, focus and orbs), so the plan can be compared with what
-the solver actually did in game. The log's shorthand intents are mapped back to
-the engine's move ids; anything unmapped aborts instead of guessing.
+the solver actually did in game. Reconstruction is shared with _plan_cards.py,
+so the log's shorthand intents go through the same move-id table there.
 """
 import importlib
 import json
@@ -15,20 +15,12 @@ RUNTIME = ROOT / 'candidates/sts-ironclad-agent/runtime'
 sys.path.insert(0, str(ROOT / 'candidates/sts-ironclad-agent'))
 sys.path.insert(0, str(RUNTIME / 'engine'))
 import slaythespire as sts  # noqa: E402
-from steam.steam_mcts import MOVE_NAMES  # noqa: E402
 
-sys.path.insert(0, str(Path(__file__).resolve().parent / 'cases'))
-from _barrage_damage import build  # noqa: E402
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import _card_usage as usage  # noqa: E402
+from _plan_cards import build  # noqa: E402
 
 native = importlib.import_module('live_combat_search')
-
-# Raw Java move numbers, mapped through the same table the live importer uses so
-# a wrong move can never silently fake a plan. Extend per monster as needed.
-INTENT = {
-    ('Nemesis', 'ATTACK'): 2,
-    ('Nemesis', 'ATTACK_DEBUFF'): 3,
-    ('Nemesis', 'DEBUFF'): 4,
-}
 
 
 def name_of(card):
@@ -48,14 +40,8 @@ def main():
                if r.get('floor') == floor and r.get('turn') == turn
                and r.get('kind') == 'card_play'
                and any(c.startswith('Barrage') for c in (r.get('hand') or [])))
-    moved = {}
-    for m in rec['monsters']:
-        moved[m['id']] = INTENT[(m['id'], m['intent'])]
-    patched = dict(rec, monsters=[dict(m, move_id=moved[m['id']]) for m in rec['monsters']])
-    bc = build(patched)
-    for m, src in zip(bc.monsters, rec['monsters']):
-        if int(m.move_id) == 0:
-            raise SystemExit(f"move id did not take for {src['id']}")
+    costs = dict(usage.COSTS)
+    bc = build(rec, costs)
     print(f"floor {floor} turn {turn}: energy {rec['energy']} focus {rec.get('focus')} "
           f"orbs {[o.get('id') for o in rec.get('orbs') or []]}")
     print('hand:', rec['hand'])
