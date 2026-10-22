@@ -12,17 +12,18 @@ A card_play record is a snapshot taken just before the card is played: its
 hand still contains that card and its energy is pre-payment. So the hand on
 the record is exactly the set of choices that were open at that decision.
 
-Costs come from sts_cards.json (the wiki export kept in the repo root), with
-the upgraded cost used for names ending in "+". No cost is ever guessed: a
-card missing from the export is reported, not assumed free.
+Costs come from the wiki export under data/ (see _paths for why it is not
+sts_cards.json in the repo root), with the upgraded cost used for names ending
+in "+". No cost is ever guessed: a card missing from the export is reported, not
+assumed free.
 """
 import json
 import sys
 from collections import defaultdict
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[1]
-LOG_DIR = Path(r"C:\Users\yang\Desktop\sts1-dev-defect")
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from _paths import DATA, LOG_DIR, ROOT, behaviour_logs  # noqa: E402
 
 # Game ids used by CommunicationMod that differ from the wiki's English names.
 ALIASES = {
@@ -48,7 +49,7 @@ EXTRA_COSTS = {
 
 
 def load_costs():
-    data = json.loads((ROOT / "sts_cards.json").read_text(encoding="utf-8"))
+    data = json.loads((DATA / "sts_cards.json").read_text(encoding="utf-8"))
     costs = {}
     for card in data["cards"]:
         name = card["name_en"]
@@ -161,7 +162,7 @@ def scan(paths):
 
 
 def main():
-    paths = sorted(LOG_DIR.glob("sts1-test-*.jsonl"))
+    paths = behaviour_logs()
     if len(sys.argv) > 1:
         paths = [Path(p) for p in sys.argv[1:]]
     stats, unknown = scan(paths)

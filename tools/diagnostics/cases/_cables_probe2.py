@@ -8,7 +8,10 @@ import slaythespire as sts
 from steam.rng_contract import COMBAT_STREAMS
 from sim_patch.parity.adapter import Comparator
 
-DATA = Path(r"C:\Users\yang\Desktop\sts1-dev-defect\sts1-state_divergence-1208793710291554246-F39-v0.9.1-1021-2230.json")
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from _paths import LOG_DIR  # noqa: E402
+
+DATA = LOG_DIR / "sts1-state_divergence-1208793710291554246-F39-v0.9.1-1021-2230.json"
 data = json.loads(DATA.read_text(encoding="utf-8"))
 gs = data["recent_battles"]["current"]["root"]["game_state"]
 streams = gs["full_rng_state"]["streams"]

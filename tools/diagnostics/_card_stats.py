@@ -5,16 +5,18 @@ each command, so a card is 'offered' when it is in hand on a record that follows
 different command or a new turn.
 """
 import json
+import sys
 from collections import Counter
 from pathlib import Path
 
-DESKTOP = Path(r'C:\Users\yang\Desktop\sts1-dev-defect')
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from _paths import behaviour_logs  # noqa: E402
 
 offered = Counter()
 played = Counter()
 turns = 0
 
-files = sorted(DESKTOP.glob('sts1-test-*.jsonl'), key=lambda p: p.stat().st_mtime)
+files = sorted(behaviour_logs(), key=lambda p: p.stat().st_mtime)
 for path in files:
     records = [json.loads(l) for l in path.read_text(encoding='utf-8').splitlines() if l.strip()]
     if not records or records[0].get('character') != 'DEFECT':

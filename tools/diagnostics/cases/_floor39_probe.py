@@ -7,18 +7,20 @@ import json
 import sys
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[2]
 AGENT = ROOT / "candidates" / "sts-ironclad-agent"
 sys.path[:0] = [str(AGENT / "runtime" / "engine"), str(AGENT), str(AGENT / "steam"),
                 str(AGENT / "sim_patch" / "alignment" / "tests"),
                 str(AGENT / "sim_patch" / "parity")]
 
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from _paths import LOG_DIR  # noqa: E402
+
 import slaythespire as sts  # noqa: E402
 from steam.rng_contract import COMBAT_STREAMS  # noqa: E402
 from sim_patch.parity.adapter import Comparator  # noqa: E402
 
-DATA = Path(r"C:\Users\yang\Desktop\sts1-dev-defect"
-            r"\sts1-state_divergence-1208793710291554246-F39-v0.9.1-1021-2230.json")
+DATA = LOG_DIR / "sts1-state_divergence-1208793710291554246-F39-v0.9.1-1021-2230.json"
 
 RELICS = {"CRACKED_CORE": 101, "POCKETWATCH": 54, "MERCURY_HOURGLASS": 40,
           "BAG_OF_PREPARATION": 92, "GIRYA": 109, "SLAVERS_COLLAR": 127,

@@ -11,13 +11,14 @@ from pathlib import Path
 
 TOOLS = Path(__file__).resolve().parent
 sys.path.insert(0, str(TOOLS))
-ROOT = TOOLS.parent
+ROOT = TOOLS.parents[1]
 sys.path.insert(0, str(ROOT / 'candidates/sts-ironclad-agent'))
 sys.path.insert(0, str(ROOT / 'candidates/sts-ironclad-agent/runtime/engine'))
 
 import slaythespire as sts  # noqa: E402
 import _card_usage as usage  # noqa: E402
 import _plan_cards as planner  # noqa: E402
+from _paths import behaviour_logs  # noqa: E402
 
 native = importlib.import_module('live_combat_search')
 
@@ -55,7 +56,7 @@ def main():
     budget = int(sys.argv[2]) if len(sys.argv) > 2 else 3000
     costs = dict(usage.COSTS)
     hits = []
-    for path in sorted(Path(r'C:\Users\yang\Desktop\sts1-dev-defect').glob('sts1-test-*.jsonl')):
+    for path in behaviour_logs():
         for rec in load(path):
             if rec.get('kind') != 'card_play':
                 continue

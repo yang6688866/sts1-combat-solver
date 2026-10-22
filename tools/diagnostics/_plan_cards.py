@@ -13,7 +13,7 @@ from pathlib import Path
 TOOLS = Path(__file__).resolve().parent
 sys.path.insert(0, str(TOOLS))
 
-ROOT = TOOLS.parent
+ROOT = TOOLS.parents[1]
 sys.path.insert(0, str(ROOT / 'candidates/sts-ironclad-agent'))
 sys.path.insert(0, str(ROOT / 'candidates/sts-ironclad-agent/runtime/engine'))
 import slaythespire as sts  # noqa: E402

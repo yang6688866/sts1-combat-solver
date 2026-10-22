@@ -10,15 +10,15 @@ import json
 import sys
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parent))
-from _barrage_damage import build  # noqa: E402
-
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[2]
 RUNTIME = ROOT / 'candidates/sts-ironclad-agent/runtime'
 sys.path.insert(0, str(ROOT / 'candidates/sts-ironclad-agent'))
 sys.path.insert(0, str(RUNTIME / 'engine'))
 import slaythespire as sts  # noqa: E402
 from steam.steam_mcts import MOVE_NAMES  # noqa: E402
+
+sys.path.insert(0, str(Path(__file__).resolve().parent / 'cases'))
+from _barrage_damage import build  # noqa: E402
 
 native = importlib.import_module('live_combat_search')
 

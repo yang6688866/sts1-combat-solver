@@ -55,3 +55,14 @@ ctest --test-dir candidates/sts-ironclad-agent/build/engine -C Release
 最后一项会校验 pyd 哈希与 `candidates/sts-ironclad-agent/runtime/live-manifest.json` 是否一致。**手工重链后哈希会变，必须重算 manifest**，否则游戏启动即报 `frozen live engine changed`。正常情况下用 `tools/build_solver_runtime.py` 重建，它会一并更新。
 
 解释器一律用 `.venv/Scripts/python.exe`（3.13）。系统 python 是 3.11，import 不到 `slaythespire`。
+
+## 诊断脚本的日志路径
+
+`tools/diagnostics/` 下的脚本统一从 `tools/diagnostics/_paths.py` 取路径，那里读两个环境变量：
+
+| 变量 | 默认值 |
+| --- | --- |
+| `STS_TEST_LOGS` | `E:\sts-devkit\test-logs` |
+| `STS_RUNS` | `%LOCALAPPDATA%\STS1CombatSolver\runs` |
+
+日志目录搬家时只改这两个变量（或改 `_paths.py` 的默认值），不要去改各个脚本。卡牌/药水数据表在 `tools/diagnostics/data/`，随仓库走，不参与重定向。
