@@ -6,10 +6,8 @@
 ## 一句话状态
 
 机器人（Defect）线的牌、数值、专属遗物与分发测试已按字节码逐项核对并补齐测试，**只差真机验证**。代码在
-`defect/m3a-orb-skeleton`，工作区干净。CTest 16/16、运行时三项检查全 PASS、
-`tools/check_defect_truth.py` PASS。
-**本地领先 origin 2 个提交（`07699bd`、`ffbedbc`）未推**——推的时候网络不稳，要临时挂代理
-`HTTPS_PROXY=http://127.0.0.1:7890`。**还没对上游发 PR。**
+`defect/m3a-orb-skeleton`，工作区干净，已推 origin。CTest 16/16、运行时三项检查全 PASS、
+`tools/check_defect_truth.py` PASS。**还没对上游发 PR。**
 
 ## 仓库结构
 
@@ -288,6 +286,9 @@ PR 正文里必须写清这段：*要求换牌 → 机器人无牌可换 → 改
 - **手工重链后必须重算 `runtime/live-manifest.json` 的哈希**，否则游戏启动抛
   `ValueError: frozen live engine changed`。用 `tools/build_solver_runtime.py` 会自动处理。
 - **游戏开着的时候 java.exe 锁 pyd**，链接报 `LNK1104`，只能让玩家退游戏。
+- **推远端要临时挂代理**：仓库没配 `http.proxy`，直连经常 `Recv failure: Connection was reset`。用
+  `HTTPS_PROXY=http://127.0.0.1:7890 git push origin defect/m3a-orb-skeleton`。别把代理写进 git config
+  （试过一次，换成 `schannel` 报错，撤掉了）。
 
 ## 日志在哪
 
