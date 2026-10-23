@@ -6,8 +6,10 @@
 ## 一句话状态
 
 机器人（Defect）线的牌、数值、专属遗物与分发测试已按字节码逐项核对并补齐测试，**只差真机验证**。代码在
-`defect/m3a-orb-skeleton`，工作区干净，已推 origin。CTest 16/16、运行时三项检查全 PASS。
-**还没对上游发 PR。**
+`defect/m3a-orb-skeleton`，工作区干净。CTest 16/16、运行时三项检查全 PASS、
+`tools/check_defect_truth.py` PASS。
+**本地领先 origin 2 个提交（`07699bd`、`ffbedbc`）未推**——推的时候网络不稳，要临时挂代理
+`HTTPS_PROXY=http://127.0.0.1:7890`。**还没对上游发 PR。**
 
 ## 仓库结构
 
@@ -82,6 +84,33 @@ CMakeLists.txt   加新测试在这注册（三行）
 | 面板显示 | `overlay/src/sts1solver/PanelCanvas.java` |
 | Python 侧 MCTS | `candidates/sts-ironclad-agent/steam/steam_mcts.py` |
 
+### 文档索引（`docs/` 21 个文件 = 20 份 md + 1 张图，别乱翻）
+
+上游写的（别改，先读再动手）：
+
+| 文件 | 回答什么问题 |
+| --- | --- |
+| `architecture.md` | 总设计：四层结构、模块边界 |
+| `multi-character.md` | 四职业范围与分工，§4 是 M3 检查表（PR 标准的来源之一） |
+| `truth-calibration.md` | 真值校准的格式、运行器、24 个校准用例 |
+| `ui-development.md` | 改面板/模式/按键前必读 |
+| `product.md` | 产品 spec，「Play modes and player control」 |
+| `event-rules.md` | 战士全自动爬塔的事件规则单 |
+| `outside-rules.md` | 局外规则校对单（683 行，最大的一份） |
+| `mod-pair-ci.md` | 双 mod 构建 CI 怎么跑 |
+| `releases/0.8.0-beta.1.md` | 上游发版说明 |
+
+我们写的：
+
+| 文件 | 回答什么问题 |
+| --- | --- |
+| `HANDOVER.md` | **本文件**，接手先读 |
+| `local-environment.md` | 仓库外的路径、日志三来源、构建坑 |
+| `known-gaps.md` | 「我们知道但还没做」的权威清单，带出处 |
+| `upstream-handoff.md` | 回赠上游前的文件核对清单（**不是给上游看的**） |
+| `notes/2026-10-16/18/19.md`、`notes/MEMORY.md` | WorkBuddy 时期的项目笔记，历史参考 |
+| `notes/2026-10-22.md`、`notes/2026-10-23.md` | 这两天做了什么 |
+
 ### 两套夹具别搞混
 
 | 位置 | 谁写的 | 是什么 |
@@ -89,6 +118,49 @@ CMakeLists.txt   加新测试在这注册（三行）
 | `overlay/test/recorded/DEFECT/` | **我们** | 三条 `game_state` 原样导出，供 `tools/check_snapshot_import.py` 验证导入层。不是「原版结果作真值」的重放夹具 |
 | `fixtures/bug-reports/` | 混：2 个上游 v0.7.0 + 3 个我们加的 | F6 导出的 `sts1-run-v1`，含 `request`/`reply`（**带真实 RNG**）和 `fault` 原文。`README.md` 有逐文件说明 |
 | `fixtures/calibration/`、`fixtures/combat-exams/` | 上游 | 维护者的，别改 |
+
+## 仓库之外：`E:\sts-devkit\`
+
+排查和取证用的东西都在这里，**不进 git**（版权 + 体积）。`E:\sts-devkit\README.md` 是索引，
+`docs/local-environment.md` 只讲了会影响排查的那几项，下面这份是全的。
+
+| 目录 | 体积 | 是什么 |
+| --- | --- | --- |
+| `decompiled\` | 2.2M | **原版游戏字节码**，行为的唯一权威。`classes\` 下已解 111 个 `.txt`，`README.md` 有已解类索引和 4 条用真 bug 换来的坑 |
+| `test-logs\` | 80M | 玩家真机导出的 10 个 `sts1-test-*.jsonl`、3 个 F6 分歧快照、5 个历史 jar、安装/测试说明、`待办-已知缺口.md`（旧的，已并入 `docs/known-gaps.md`） |
+| `tools\` | 80K | **写测试时的取证工具**，见下表。`card-numbers.txt` 是权威数值表 |
+| `bin\` | 18K | `cmake.bat`（剥掉 `-A x64` 转发给 venv 的 cmake）、`msvc-env.sh`、`build_values_test.bat`、`rebuild_runtime.bat` |
+| `cache-reports\` | 48K | prompt 缓存账本存档，含 2026-10-22 的基线 |
+| `jar-scratch\` | 848M | jar 解包与抓取残留，**只读存档，可以整目录删**，删了不影响任何流程 |
+
+### `E:\sts-devkit\tools\`
+
+全部从字节码取数，`.venv/Scripts/python.exe -X utf8` 跑。
+
+| 脚本 | 干什么 |
+| --- | --- |
+| `cardbytecode.py` | 共享解析库：`methods()`、`body(text, signature, cls=None)`、`instructions()`、`card_game_id(ctor)` |
+| `card-numbers.txt` | **权威数值表**，78 行 = 2 行表头 + 76 个类，格式 `card cost dmg block magic`，`->` 是升级后值。写数值测试直接照抄，别重新生成 |
+| `extract_card_numbers.py` | 生成上表。循环或派生出来的值打 `?`，**绝不猜** |
+| `card_numbers2.py` | 同上但给绝对值（`cost base->up`），替代旧表只有增量的版本 |
+| `card_table_cpp.py` | 用 `cardStringIds[]`↔`cardEnumStrings[]` 逐位对齐把游戏 ID 映射到引擎枚举名 |
+| `verify_card_numbers.py` | 拿表去校验 `DefectCards.cpp`：攻击必须排队伤害动作、每个 `up ? A : B` 必须是字节码产出的 (base,up) 对（能抓出把 9/12 写成 `up ? 7 : 9`）、变化的对必须可见、base≥2 必须出现 |
+| `compare_card_numbers.py` | 表 vs 源码的差异清单 |
+| `card_effects.py` | dump `use()` 的调用顺序与常量，供人工核对 |
+
+两个坑写在 `cardbytecode.py` 的 docstring 里，踩过一次别再踩：javap 的方法**没有闭合大括号**（必须按声明行切分）；
+`upgradeBaseCost` 的参数是**绝对新费用**，而 `upgradeDamage/Block/MagicNumber` 是**增量**。
+
+### 反编译怎么用
+
+```
+E:/sts-devkit/decompiled/decompile.sh com/megacrit/cardcrawl/cards/blue/Recycle
+E:/sts-devkit/decompiled/decompile.sh com/megacrit/cardcrawl/actions/defect/      # 整个包，尾斜杠
+```
+
+输出到 `classes/<包路径>.txt`；已解的跳过，`--force` 重解。`javap -p -c`（**没有 `-constants`**），
+因为反编译成 Java 源码会重新排版、丢掉 `addToBot`/`addToTop` 的先后和字段读写时机，而卡牌 bug
+几乎全是这两样引起的。`STS_GAME_DIR` / `STS_JDK` 可覆盖默认路径。
 
 ## 按 PR 标准，接下来做什么
 
@@ -99,7 +171,7 @@ CMakeLists.txt   加新测试在这注册（三行）
 
 1. **另开一个干净分支。** CONTRIBUTING「分支和 PR」：*一个 PR 只做一个职业的一个小步，不顺手重构共享
    代码，也不夹带无关修复*；分支名写职业和小步，例如 `silent/m1a-starter-cards`。
-   现状：`defect/m3a-orb-skeleton` 比 `upstream/main` 多 **88 个文件、24162 行**，里面混了诊断脚本、
+   现状：`defect/m3a-orb-skeleton` 比 `upstream/main` 多 **88 个文件、24247 行**，里面混了诊断脚本、
    中文 wiki 数据表、文档、构建脚本。要做的是从 `upstream/main` 拉一条 `defect/m3a-1-cards`，只挑这些：
    - `candidates/.../src/combat/characters/DefectCards.cpp`、`src/combat/{Actions,BattleContext,CardInstance,CardManager,Player,Monster}.cpp`
      及对应头文件里**机器人相关**的改动
@@ -160,6 +232,10 @@ PR 正文里必须写清这段：*要求换牌 → 机器人无牌可换 → 改
 3. **`tools/coverage_manifest.py` 的改动要不要随 PR 走，先问维护者。** 现在它只对 `IRONCLAD` 查缺口，
    输出 `IRONCLAD has no gaps`；`class_relic_tests` 段是本步新加的（遗物要有 CTest 才算出覆盖）。
    两者都算共享工具改动，按「不顺手重构共享代码」得单独确认。
+   **副作用要主动说明**：新判据一上线，`--check` 会多打一段 `NOTE: implemented but untested:`，列出
+   战士的 7 个遗物（`BRIMSTONE`、`CHAMPION_BELT`、`CHARONS_ASHES`、`MARK_OF_PAIN`、`PAPER_PHROG`、
+   `RED_SKULL`、`SELF_FORMING_CLAY`）——**这些是上游原有的缺口，不是我们弄坏的**，而且只是 NOTE、
+   不影响 `PASS`。PR 里要写清楚，免得被当成回归。
 
 ### 交叉验证项
 
@@ -168,6 +244,11 @@ PR 正文里必须写清这段：*要求换牌 → 机器人无牌可换 → 改
    /bigobj`、`-A x64` 是 Windows 专用分支，Linux/macOS 分支没跑过。推 PR 前最好在别的系统上过一遍，
    或者先推 draft 看 CI 报什么。
 2. **推 PR 前本地跑全套**（CONTRIBUTING「CI 要求」列的五行，`truth_calibration` 那行需要自己的适配器）。
+   适配器我们没有（`tools/truth_calibration/headless_adapter.py` 要 `--cli` 指向一份带存档的 CLI，这里没有），
+   但**机器人这条线有一条不需要游戏也不需要适配器的替代路**：
+   `.venv/Scripts/python.exe tools/check_defect_truth.py`。它拿 `fixtures/calibration/DEFECT/` 里维护者的 6 个
+   真值用例回放，实测 `cases 6, plays 623: costs 620, channels 58, block 297, damage 75` / `PASS`。
+   PR 里就把这条当作真值校准的证据，并说明为什么 `truth_calibration/run.py` 跑不了。
 
 ---
 
@@ -193,6 +274,11 @@ PR 正文里必须写清这段：*要求换牌 → 机器人无牌可换 → 改
    **不带 `--config Release` 会默认编 Debug，在 pybind11 的 `stl_bind.h` 报 `error C2001: 常量中有
    换行符`——看着像代码坏了，其实是配置选错。**
 
+   `cmake`/`ctest` 都不在 PATH 上（`shutil.which('cmake')` 返回 None），只在
+   `.venv/Lib/site-packages/cmake/data/bin/` 里；`cmake --build` 还要先 `vcvars64.bat` 才有编译器。
+   所以最省事的是照抄现成的 `build/_build_engine.bat` 和 `build/_ctest.bat`（这两个在 `.gitignore`
+   里，不进 git，只在本机）。`build/_rebuild.bat` 用 `python -m cmake` 走另一条路，也行。
+
 ## 三个必须知道的环境事实
 
 - **解释器**：`.venv/Scripts/python.exe`（3.13）。系统 `python` 是 3.11 Anaconda，`import slaythespire`
@@ -213,6 +299,31 @@ PR 正文里必须写清这段：*要求换牌 → 机器人无牌可换 → 改
 | 完整请求/回复 | `%LOCALAPPDATA%\STS1CombatSolver\runs\` |
 
 排查用的诊断脚本在 `tools/diagnostics/`，路径由 `_paths.py` 统一（会读环境变量 `STS_TEST_LOGS`）。
+
+## 怎么在游戏里验证（真机测试的完整步骤）
+
+机器人线**唯一还没做的一步**就是这里。流程只在 `docs/notes/2026-10-18.md:220` 记过一次，抄过来：
+
+1. **确认后端能起**：`.venv/Scripts/python.exe tools/build_solver_runtime.py` 跑完三项 PASS。
+   工坊那份是 `runtime=bundled` 且用 cp314 pyd，**不能直接换它的 runtime**；我们走 `runtime=native`，
+   由 jar 的 `solver.properties` 直接指向仓库 `.venv` + `overlay/backend.py`，所以**只换 jar 就够**。
+2. **打测试 jar**：`.venv/Scripts/python.exe tools/make_test_backend.py` 先生成
+   `overlay/backend_defect_test.py`（把 `SUPPORTED_CLASSES` 从只有战士扩成战士+机器人），再
+   `.venv/Scripts/python.exe overlay/build.py --game E:\SteamLibrary\steamapps\common\SlayTheSpire --defect-test`。
+   产物在 `overlay/build/STS1CombatSolver.jar`。
+3. **装**：把工坊的 `STS1CombatSolver.jar` 改名成 `.disable`（在
+   `E:\SteamLibrary\steamapps\workshop\content\646570\3814773843\`），把新 jar 拷进
+   `E:\SteamLibrary\steamapps\common\SlayTheSpire\mods\`。`mods\` 里现在只有一个
+   `STS1CombatSolver-defect-1021.jar.disable`（已禁用），**启用前先确认没有两份同时生效**。
+4. **测什么**（这次专门要盯的五个修复）：Bullseye（伤害 8/11 + Lock-On 2/3）、Reboot（洗牌后抽 4/6、
+   手牌随机回填）、Cables（回合结束第二个被动延后）、X 费（Tempest/Multi-Cast/Recycle 扣能量与
+   Confusion 变 0 费）、Inserter（第 2 回合才 +1 球位，不是第 1 回合）。
+5. **报错看哪**：`C:\Users\yang\AppData\Local\STS1CombatSolver\backend.log`（全文，含
+   `state_divergence` 的 diff）。行为记录会落在桌面 `sts1-dev-defect\sts1-test-<seed>.jsonl`。
+6. **还原**：工坊 jar 改回 `.jar`、删掉 `mods\` 里那份，两步反向。
+
+`overlay/build.py` 会自己跑二十多个 Java 自检（`LanguageCheck`、`PanelSizeCheck`、`ModeCheck`、
+`Distill2Check`、`OutsidePacketParityCheck` 等），所以它能通过就说明 Java 层没坏。
 
 ---
 
