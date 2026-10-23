@@ -1,5 +1,6 @@
 # For coding agents
 
+- Picking up work in this checkout: read `docs/HANDOVER.md` first. It says where the work stopped, what the hard requirements are, and what is still missing.
 - Building, running the checks, or debugging a reported in-game bug: read `docs/local-environment.md` first. It covers where the game logs live, the decompile tool, and the two build traps.
 - Panel, play modes, keys, panel text: read `docs/ui-development.md` first, then `CONTRIBUTING.md`.
 - Combat simulator and other characters: read `CONTRIBUTING.md` and the documents it lists.
