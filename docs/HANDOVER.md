@@ -6,8 +6,89 @@
 ## 一句话状态
 
 机器人（Defect）线的牌、数值、专属遗物与分发测试已按字节码逐项核对并补齐测试，**只差真机验证**。代码在
-`defect/m3a-orb-skeleton`，HEAD `b6c0587`，工作区干净，已推 origin。CTest 16/16、运行时三项检查全 PASS。
+`defect/m3a-orb-skeleton`，工作区干净，已推 origin。CTest 16/16、运行时三项检查全 PASS。
 **还没对上游发 PR。**
+
+## 仓库结构
+
+代码分两层：**Java 层（Mod 本体）** 和 **C++/Python 层（求解器）**。两层通过 stdin/stdout 的 JSON 协议
+通信，`overlay/backend.py` 是 Python 侧入口。
+
+### 顶层
+
+| 目录 | 跟踪文件 | 作用 |
+| --- | --- | --- |
+| `overlay/` | 121 | **Java 层 Mod 本体**：面板、按键、事件规则、后端启动 |
+| `candidates/sts-ironclad-agent/` | 132 | **求解器**：C++ 战斗引擎 + Python MCTS/导入层 |
+| `tools/` | 79 | 构建脚本、各种 `check_*.py`、诊断脚本 |
+| `fixtures/` | 32 | 夹具：`bug-reports/`（真机分歧现场）、`calibration/`、`combat-exams/` |
+| `references/` | 40 | `CommunicationMod/`（原作者仓库本来就有，**别动**） |
+| `docs/` | 21 | 文档。`architecture.md` 是总设计，`multi-character.md` 是四职业分工 |
+| `assets/` | 1 | 一张图 |
+| `.github/` | 3 | CI（3 系统 × 2 Python 版本） |
+
+### `overlay/`（Java 层，149M 但只有 121 个文件进 git）
+
+| 子目录 | 作用 |
+| --- | --- |
+| `src/sts1solver/` | 39 个 `.java`：`PanelCanvas`（面板）、`BackendClient`/`BackendRuntime`（启动 Python）、`EventRules`、`Foresight`、`MapExport`、`Distill2` 等 |
+| `test/` | 45 项 Java 自检 + JSON 夹具。`test/recorded/` 是**我们加的**导入夹具（见下） |
+| `resources/` | 7 个：本地化 tsv、`search_contract.json`、`distill2-weights.bin`（17M，上游自带的权重，不是我加的） |
+| `nn/` | `scorer-v2.bin` |
+| `build/` | **不进 git**。javac 产物、`STS1CombatSolver.jar`、`native/overlay_search.pyd` |
+| `runtime/` | **不进 git**。`backend.log` 和 `runs/` 落在这 |
+
+顶层散放的 `.py` 里，`backend.py` 是 Python 后端入口，`build_native.py` 生成并编译原生扩展，
+`runtime_files.py` 定义哪些文件要打进 jar。
+
+### `candidates/sts-ironclad-agent/`（求解器）
+
+| 子目录 | 跟踪文件 | 作用 |
+| --- | --- | --- |
+| `combat_engine/` | 115 | C++ 引擎 + CTest。**改牌/改机制都在这** |
+| `steam/` | 11 | `steam_mcts.py`（MCTS）、`live_search.py`、`state_export_mod/`（游戏内导出 mod）、`native/` |
+| `sim_patch/` | 5 | `alignment/`（ID 映射）、`parity/`（一致性校验） |
+| `build/` | 0 | **不进 git**。cmake 产物，真库在 `build/engine/Release/` |
+| `runtime/` | 0 | **不进 git**。编好的 pyd + `live-manifest.json`（哈希清单） |
+
+### 引擎内部分层（`combat_engine/combat4r/engine-source/`）
+
+```
+include/ 和 src/ 一一对应，改实现要同时看头文件
+├── combat/      战斗核心：BattleContext（总调度）、CardManager（牌堆）、Player、Monster、
+│                 Actions（动作队列）、CardInstance；characters/ 下按职业分文件
+│                 → DefectCards.cpp 就是机器人 74 张牌的实现
+├── constants/   静态表：Cards.h（371 张牌的枚举/费用/类型）、CardPools.h（牌池）、
+│                 Relics.h、MonsterEncounters.h …  ← 改表要小心，属共享代码
+├── game/        GameContext（局外状态）、Random（Java 同款 LCG）、Deck、Map、Shop
+├── sim/search/  搜索算法：ScumSearchAgent2、Action（动作编解码）
+└── bindings/    slaythespire.cpp — pybind11 导出，Python 能调什么看这里
+
+tests/           16 个 CTest，每个 .cpp 一个可执行文件，模板 pen_nib_test.cpp
+third_party/     nlohmann（唯一第三方依赖）
+CMakeLists.txt   加新测试在这注册（三行）
+```
+
+### 找东西的路线
+
+| 想改什么 | 去哪 |
+| --- | --- |
+| 某张机器人牌的效果/数值 | `src/combat/characters/DefectCards.cpp` |
+| 起始牌（打击/防御） | `src/combat/BattleContext.cpp` 的共享 switch（四个职业共用） |
+| 牌的费用/类型 | `include/constants/Cards.h` 的 `getEnergyCost` / `cardTypes[]` |
+| 球（Lightning/Frost/Dark/Plasma）机制 | `src/combat/Actions.cpp`、`src/combat/Player.cpp` |
+| 遗物 | `src/combat/BattleContext.cpp` 的 `initRelics` 和各钩子 |
+| 搜索/估值策略 | `src/sim/search/` **（CONTRIBUTING 禁止顺手改）** |
+| 面板显示 | `overlay/src/sts1solver/PanelCanvas.java` |
+| Python 侧 MCTS | `candidates/sts-ironclad-agent/steam/steam_mcts.py` |
+
+### 两套夹具别搞混
+
+| 位置 | 谁写的 | 是什么 |
+| --- | --- | --- |
+| `overlay/test/recorded/DEFECT/` | **我们** | 三条 `game_state` 原样导出，供 `tools/check_snapshot_import.py` 验证导入层。不是「原版结果作真值」的重放夹具 |
+| `fixtures/bug-reports/` | 混：2 个上游 v0.7.0 + 3 个我们加的 | F6 导出的 `sts1-run-v1`，含 `request`/`reply`（**带真实 RNG**）和 `fault` 原文。`README.md` 有逐文件说明 |
+| `fixtures/calibration/`、`fixtures/combat-exams/` | 上游 | 维护者的，别改 |
 
 ## 按 PR 标准，接下来做什么
 
@@ -18,11 +99,11 @@
 
 1. **另开一个干净分支。** CONTRIBUTING「分支和 PR」：*一个 PR 只做一个职业的一个小步，不顺手重构共享
    代码，也不夹带无关修复*；分支名写职业和小步，例如 `silent/m1a-starter-cards`。
-   现状：`defect/m3a-orb-skeleton` 比 `upstream/main` 多 **88 个文件、24032 行**，里面混了诊断脚本、
+   现状：`defect/m3a-orb-skeleton` 比 `upstream/main` 多 **88 个文件、24162 行**，里面混了诊断脚本、
    中文 wiki 数据表、文档、构建脚本。要做的是从 `upstream/main` 拉一条 `defect/m3a-1-cards`，只挑这些：
    - `candidates/.../src/combat/characters/DefectCards.cpp`、`src/combat/{Actions,BattleContext,CardInstance,CardManager,Player,Monster}.cpp`
      及对应头文件里**机器人相关**的改动
-   - `tests/` 下 7 个 defect/orb 测试 + `CMakeLists.txt` 的注册
+   - `tests/` 下新增的 7 个 defect/orb 测试 + `CMakeLists.txt` 的注册
    - `tests/character_dispatch_test.cpp`（见下面「已改完、PR 里必须解释的一项」）
    - `overlay/test/recorded/DEFECT/` 三个夹具 + `tools/check_snapshot_import.py`
    - `overlay/build_native.py`（`sts_core.lib` 路径修复，见「顺手发现」）
@@ -31,10 +112,11 @@
 
 2. **补真机夹具。** CONTRIBUTING 代码要求第 5 条：*每个新实现至少一个原生夹具覆盖它*；M3 每小步的检查
    表（`docs/multi-character.md` §4）还要 *至少一组原版夹具 + 快照往返测试 + ID 映射*。
-   现状：`fixtures/bug-reports/` 还是 v0.7.0 的两个；`overlay/test/recorded/DEFECT/` 的三个是**导入中间层**
-   夹具（`tools/check_snapshot_import.py` 用），不是「原版结果作为真值」的重放夹具。Reboot、Cables、
-   X 费、Bullseye、Inserter 五个修复都只有单测。F6 导出在 `E:\sts-devkit\test-logs\`，挑进仓库时只留
-   状态数字和 ID。
+   现状：`fixtures/bug-reports/` 有 5 个——2 个上游 v0.7.0 的，加 3 个我们补的 v0.9.1 现场（F39 Cables 两次、
+   F55 X 费/Recycle）。但那 3 个都是**修复前**抓的「错成什么样」，没有修复后重抓的；而且 Reboot、Bullseye、
+   Inserter 三个修复一个夹具都没有。`overlay/test/recorded/DEFECT/` 的三个是**导入中间层**夹具
+   （`tools/check_snapshot_import.py` 用），不是「原版结果作为真值」的重放夹具。F6 导出在
+   `E:\sts-devkit\test-logs\`，挑进仓库时只留状态数字和 ID。
 
 3. **不进 PR 的东西**：`tools/diagnostics/`（含 `data/` 那 468KB 中文 wiki 导出表）、`docs/notes/`、
    `docs/HANDOVER.md`、`docs/known-gaps.md`、`docs/upstream-handoff.md`、`overlay/backend_defect_test.py`
