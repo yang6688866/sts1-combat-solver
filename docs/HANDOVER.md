@@ -5,8 +5,9 @@
 
 ## 一句话状态
 
-机器人（Defect）线的牌、数值与专属遗物已按字节码逐项核对并补齐测试，**只差真机验证**。代码在
-`defect/m3a-orb-skeleton`，HEAD `7dc3eff`，工作区干净，已推 origin。**还没对上游发 PR**。
+机器人（Defect）线的牌、数值、专属遗物与分发测试已按字节码逐项核对并补齐测试，**只差真机验证**。代码在
+`defect/m3a-orb-skeleton`，HEAD `b6c0587`，工作区干净，已推 origin。CTest 16/16、运行时三项检查全 PASS。
+**还没对上游发 PR。**
 
 ## 按 PR 标准，接下来做什么
 
@@ -22,64 +23,69 @@
    - `candidates/.../src/combat/characters/DefectCards.cpp`、`src/combat/{Actions,BattleContext,CardInstance,CardManager,Player,Monster}.cpp`
      及对应头文件里**机器人相关**的改动
    - `tests/` 下 7 个 defect/orb 测试 + `CMakeLists.txt` 的注册
-   - `tests/character_dispatch_test.cpp`（我们要改的地方见下一条）
+   - `tests/character_dispatch_test.cpp`（见下面「已改完、PR 里必须解释的一项」）
    - `overlay/test/recorded/DEFECT/` 三个夹具 + `tools/check_snapshot_import.py`
    - `overlay/build_native.py`（`sts_core.lib` 路径修复，见「顺手发现」）
    - `overlay/coverage_manifest.json`
    **挑的时候注意拆分**：`f91059f` 一个提交里混了牌、遗物、X 费、洗牌四件事，回赠要拆成独立提交。
 
-2. **`tests/character_dispatch_test.cpp` 的 DEFECT 用例不能一删了之，先问维护者。** CONTRIBUTING 代码要求
-   第 5 条：*若你实现的牌正好是 `character_dispatch_test.cpp` 或 `tools/check_backend_protocol.py` 里当作
-   "未实现"示例的牌，换成同职业同类型的另一张未实现牌，并在 PR 里说明*。
-
-   实测结果（这条比预想的难）：
-   - 上游那两条是 `{DEFECT, CardId::ZAP}` 和 `{DEFECT, CardId::BALL_LIGHTNING}`，本意是攻击和技能各一条。
-     但字节码里 `Zap` 的 `CardType` 是 **SKILL**、`BallLightning` 是 **ATTACK**——上游注释把两行的类型
-     写反了。我们两条都实现了，所以两条都得换。
-   - **机器人奖励池 71 张 + 起始牌 4 张现在全部实现**，jar 的 `cards/blue/` 76 个类里没有一张未实现的牌
-     （唯一的 `Impulse` 是未使用类，不在 `cardStringIds`）。也就是说**不存在"同职业同类型的另一张未实现
-     牌"可换**。
-   - `tools/check_backend_protocol.py:69` 的未实现示例用的是 `Neutralize`（静默）和 `Tingsha`（遗物），
-     没有机器人牌，不用改。
-
-   所以现在分支里是把那两行注释掉删了。PR 里要把这段写清楚：*要求换牌，但机器人牌已全部实现，无牌可换；
-   保留的共享 switch 检查仍然覆盖"已实现的牌被正确处理"*。要么维护者给个处理办法（例如允许删、或允许
-   用 `SILENT` 的一条补攻击/技能覆盖），要么这条得等维护者回话。**建议动手前先发个 issue 问。**
-
-3. **补真机夹具。** CONTRIBUTING 代码要求第 5 条：*每个新实现至少一个原生夹具覆盖它*；M3 每小步的检查
+2. **补真机夹具。** CONTRIBUTING 代码要求第 5 条：*每个新实现至少一个原生夹具覆盖它*；M3 每小步的检查
    表（`docs/multi-character.md` §4）还要 *至少一组原版夹具 + 快照往返测试 + ID 映射*。
    现状：`fixtures/bug-reports/` 还是 v0.7.0 的两个；`overlay/test/recorded/DEFECT/` 的三个是**导入中间层**
    夹具（`tools/check_snapshot_import.py` 用），不是「原版结果作为真值」的重放夹具。Reboot、Cables、
    X 费、Bullseye、Inserter 五个修复都只有单测。F6 导出在 `E:\sts-devkit\test-logs\`，挑进仓库时只留
    状态数字和 ID。
 
-4. **不进 PR 的东西**：`tools/diagnostics/`（含 `data/` 那 468KB 中文 wiki 导出表）、`docs/notes/`、
+3. **不进 PR 的东西**：`tools/diagnostics/`（含 `data/` 那 468KB 中文 wiki 导出表）、`docs/notes/`、
    `docs/HANDOVER.md`、`docs/known-gaps.md`、`docs/upstream-handoff.md`、`overlay/backend_defect_test.py`
    及其构建开关、`tools/make_test_backend.py`、`tools/check_defect_*.py`。`CONTRIBUTING` 代码要求第 2 条
    只禁游戏代码；这些是「与本小步无关」，归第「不夹带无关修复」那条。
 
+### 已改完、PR 里必须解释的一项
+
+**`tests/character_dispatch_test.cpp`（`b6c0587`）。** CONTRIBUTING 代码要求第 5 条：*若你实现的牌正好是
+`character_dispatch_test.cpp` 或 `tools/check_backend_protocol.py` 里当作"未实现"示例的牌，换成同职业同
+类型的另一张未实现牌，并在 PR 里说明*。
+
+规则的前提在我们这一步不成立，实测依据：
+- 上游那两条是 `{DEFECT, CardId::ZAP}` 和 `{DEFECT, CardId::BALL_LIGHTNING}`，注释标成 attack 和 skill。
+  字节码里实际相反：`Zap` 是 **SKILL**、`BallLightning` 是 **ATTACK**——上游把两行的类型写反了。
+- **机器人 71 张奖励牌 + 4 张起始牌全部实现**；jar 的 `cards/blue/` 76 个类里唯一没有引擎 case 的是
+  `Impulse`，而它是未使用类、不在 `cardStringIds`。所以**没有"同职业同类型的另一张未实现牌"可换**。
+- `tools/check_backend_protocol.py:69` 的未实现示例是 `Neutralize`（静默）和 `Tingsha`（遗物），
+  没有机器人牌，那处不用改。
+
+改法：把用例拆成两组。`unimplemented[]` 保留静默三张 + 观者三张（攻击/技能/能力各一），断言打出去报
+`unimplemented card`；`implemented[]` 放机器人三张（Ball Lightning 攻击 / Zap 技能 / Defragment 能力），
+断言**不**报该错、正常执行。两组都保持三种类型覆盖，机器人这三张既补上原两行的类型覆盖，也把
+"已实现的牌不该被误报"变成断言。
+
+PR 正文里必须写清这段：*要求换牌 → 机器人无牌可换 → 改成断言已实现的牌正常运行*。这不是绕过要求，
+是把原本由那两行承担的两个职责（类型覆盖、拒绝未实现）分开承担。**如果维护者更想保留"三种类型都被
+拒绝"的机器人样本，需要他给出处理办法。**
+
 ### 内容项
 
-5. **PR 说明要写清四件事**（CONTRIBUTING「分支和 PR」）：实现了哪些牌/遗物/能力；每项依据的 **Java 类名
+1. **PR 说明要写清四件事**（CONTRIBUTING「分支和 PR」）：实现了哪些牌/遗物/能力；每项依据的 **Java 类名
    和方法名**（只写名字，不贴代码）；覆盖清单的变化；新增了哪些夹具和测试。依据现在散在
    `docs/notes/` 里，要提炼成 PR 正文。已知要引用的类：`Reboot`、`LockOn`、`Inserter`、
    `ShuffleAllAction`、`PutOnDeckAction`、`DrawCardAction`、`ImpulseAction`、`Tempest`、`MultiCast`、
    `Recycle`、`AllForOneAction`、`ReinforcedBody`、`GoldPlatedCables`。
-6. **如实写出没修的缺口**：`cardColors[]` 里 `BUFFER`/`COMPILE_DRIVER` 被标 `PURPLE`、
+2. **如实写出没修的缺口**：`cardColors[]` 里 `BUFFER`/`COMPILE_DRIVER` 被标 `PURPLE`、
    `BRILLIANCE`/`COLLECT` 被标 `BLUE`（不影响战斗，只影响变化牌池；属共享表，按「不顺手重构共享代码」
    单独说明不修）；铺垫牌估值、满血偏格挡两条属维护者已承认的搜索取舍（`docs/multi-character.md` §2.3），
    PR 里说明「不在本步范围」。
-7. **`tools/coverage_manifest.py` 的改动要不要随 PR 走，先问维护者。** 现在它只对 `IRONCLAD` 查缺口，
+3. **`tools/coverage_manifest.py` 的改动要不要随 PR 走，先问维护者。** 现在它只对 `IRONCLAD` 查缺口，
    输出 `IRONCLAD has no gaps`；`class_relic_tests` 段是本步新加的（遗物要有 CTest 才算出覆盖）。
    两者都算共享工具改动，按「不顺手重构共享代码」得单独确认。
 
 ### 交叉验证项
 
-8. **CI 是 3 系统 × 2 Python 版本**（`.github/workflows/native-runtime.yml`：`ubuntu-24.04` / `macos-14` /
+1. **CI 是 3 系统 × 2 Python 版本**（`.github/workflows/native-runtime.yml`：`ubuntu-24.04` / `macos-14` /
    `windows-2022` × 3.11 / 3.14）。本机只验证过 Windows；`overlay/build_native.py` 里 `/O2 /utf-8 /EHsc
    /bigobj`、`-A x64` 是 Windows 专用分支，Linux/macOS 分支没跑过。推 PR 前最好在别的系统上过一遍，
    或者先推 draft 看 CI 报什么。
-9. **推 PR 前本地跑全套**（CONTRIBUTING「CI 要求」列的五行，`truth_calibration` 那行需要自己的适配器）。
+2. **推 PR 前本地跑全套**（CONTRIBUTING「CI 要求」列的五行，`truth_calibration` 那行需要自己的适配器）。
 
 ---
 
