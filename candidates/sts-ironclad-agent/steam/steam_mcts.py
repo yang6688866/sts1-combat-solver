@@ -312,7 +312,10 @@ def card_snapshot(card):
     result = {"id": sts.card_id_from_name(key),
             "upgrades": int(card.get("upgrades") or 0),
             "cost": int(card.get("cost") if card.get("cost") is not None else 0),
-            "misc": int(card.get("misc") or 0)}
+            "misc": int(card.get("misc") or 0),
+            # CommunicationMod does not export the Retain keyword, so an older capture
+            # reads as not retained; a capture that does carry it wins.
+            "retain": bool(card.get("retain", False))}
     for field in ("base_cost", "free_to_play_once", "exhausts"):
         if field in card:
             result[field] = card[field]
@@ -623,9 +626,10 @@ def build_snapshot(game_state, counters=None):
         relics.append({"id": sts.relic_id_from_name(identifier),
                        "counter": int(counter if counter is not None else -1)})
     snapshot = {
-        # Optional: the importer reads Ironclad when absent. Stance, mantra and retain are
-        # likewise optional and are only added once the Mod exports them. Orbs come from
-        # CommunicationMod and are always present.
+        # Optional: the importer reads Ironclad when absent. Stance and mantra are always
+        # written (Neutral and zero when the capture has no Watcher field), because the
+        # exporter and the comparison must agree on the same fields; the Mod's stance
+        # field is the one the Watcher switch will later feed. Retain is per card.
         **({"character": game_state["class"]} if game_state.get("class") else {}),
         "seed": int(game_state.get("seed") or 0),
         "floor": int(game_state.get("floor") or 0),
@@ -644,6 +648,13 @@ def build_snapshot(game_state, counters=None):
             "max_hp": int(player.get("max_hp") or game_state.get("max_hp") or 0),
             "block": int(player.get("block") or 0),
             "energy": int(player.get("energy") or 0),
+            # The game's own spelling, passed through untouched: a value the engine does
+            # not know must be refused there, not translated here. A capture with no Watcher
+            # field (every character today, since the Mod does not export stance yet) gets the
+            # same default the importer uses, so this is a placeholder for that capture, not an
+            # observation: only the Mod exporting the field can make the live path honest.
+            "stance": player.get("stance") or "Neutral",
+            "mantra": int(player.get("mantra") or 0),
             "energy_per_turn": int(combat.get("energy_per_turn") or 3) + berserk_energy,
             "card_draw_per_turn": int(combat.get("card_draw_per_turn", 5 - int(any(p.get("id")=="Draw Reduction" for p in player_powers)))) ,
             # The engine folds two game powers into dedicated fields rather than
@@ -762,12 +773,17 @@ def assert_snapshot_matches(snapshot, battle):
     assert int(battle.encounter) == snapshot["encounter"]
     assert (battle.player.cur_hp, battle.player.max_hp, battle.player.block, battle.player.energy) == (
         player["current_hp"], player["max_hp"], player["block"], player["energy"])
+    # The Watcher fields go out with every snapshot, so the importer must hand them back
+    # unchanged rather than default them away.
+    assert battle.player.stance == player["stance"], battle.player.stance
+    assert int(battle.player.get_status(sts.PlayerStatus.MANTRA)) == int(player["mantra"])
     for key, cards in (("hand", battle.hand), ("draw_pile", battle.draw_pile),
                        ("discard_pile", battle.discard_pile), ("exhaust_pile", battle.exhaust_pile)):
         expected = snapshot[key]
         assert len(cards) == len(expected), (key, len(cards), len(expected))
         assert [(int(card.id), int(card.cost_for_turn), bool(card.upgraded)) for card in cards] == [
             (card["id"], card["cost"], card["upgrades"] > 0) for card in expected], key
+        assert [bool(card.retain) for card in cards] == [bool(card["retain"]) for card in expected], key
     assert len(battle.monsters) == len(snapshot["monsters"])
     for expected, monster in zip(snapshot["monsters"], battle.monsters):
         assert (monster.cur_hp, monster.max_hp, monster.block) == (

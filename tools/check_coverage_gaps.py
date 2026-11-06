@@ -60,12 +60,12 @@ EXPECTED = {
 }
 
 
-def card(card_id, upgrades=0, cost=1):
+def card(card_id, upgrades=0, cost=1, retain=False):
     # Deliberately no `is_playable`: the fixture records the board, not which card the game
     # considered legal, so the comparator must treat legality as unobserved instead of
     # comparing the simulator's guess against a value that was never captured.
     return {'id': card_id, 'name': card_id, 'cost': cost, 'base_cost': cost, 'upgrades': upgrades,
-            'retain': False, 'has_target': False, 'target': 'SELF',
+            'retain': retain, 'has_target': False, 'target': 'SELF',
             'type': 'SKILL', 'misc': 0, 'uuid': None, 'free_to_play_once': False}
 
 
@@ -81,8 +81,16 @@ def to_game_state(observation, template, character):
     piles = observation['piles']
     by_id = {}
     for pile in ('hand', 'draw', 'discard', 'exhaust'):
-        by_id[pile] = [dict(card(c['id'], c['upgrades'], c['cost']), uuid=f'{pile}-{index:04d}')
-                       for index, c in enumerate(piles[pile])]
+        by_id[pile] = []
+        for index, c in enumerate(piles[pile]):
+            entry = dict(card(c['id'], c['upgrades'], c['cost']), uuid=f'{pile}-{index:04d}')
+            # Claim the Retain keyword only when the capture recorded it; otherwise the
+            # comparison has to report the bit as unobserved instead of reading a default.
+            if 'retain' in c:
+                entry['retain'] = c['retain']
+            else:
+                entry.pop('retain', None)
+            by_id[pile].append(entry)
     combat['hand'] = by_id['hand']
     combat['draw_pile'] = by_id['draw']
     combat['discard_pile'] = by_id['discard']
@@ -96,6 +104,11 @@ def to_game_state(observation, template, character):
         'orbs': [{'id': orb['id'], 'passive_amount': orb['passive'], 'evoke_amount': orb['evoke']}
                  for orb in player['orbs']],
     }
+    # A Watcher capture carries these; an Ironclad one does not, and then the importer
+    # defaults to Neutral/0 rather than this tool inventing a value.
+    for field in ('stance', 'mantra'):
+        if field in player:
+            combat['player'][field] = player[field]
     prototype = (combat.get('monsters') or [None])[0] or {}
     combat['monsters'] = [
         {**copy.deepcopy(prototype),

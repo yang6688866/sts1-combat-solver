@@ -1,6 +1,6 @@
 # 四职业战斗支持：范围与分工
 
-Last confirmed: 2026-10-15，基于分支 `fix/search-timeout-handling`（6dc1e87）的静态阅读，未编译、未运行测试。
+Last confirmed: 2026-10-15，基于分支 `fix/search-timeout-handling`（6dc1e87）的静态阅读，未编译、未运行测试。2026-11-06 更新了 §2.2 与 §4 里已经过时的几句（导入读快照里的职业、宝珠/姿态/真言/保留位已过边界），其余仍是那次静态阅读的结论。
 所有里程碑和排序都是提议（proposed），发布顺序仍是 [architecture.md](architecture.md) 里的待决事项。产品目标见 [product.md](product.md)。
 
 本文回答三件事：把战斗求解从铁甲战士扩到静默猎手、故障机器人、观者，原生模拟器现在缺多少；模拟器之外哪些地方写死了铁甲战士；外部协作者怎样安全地认领一块。不含任何实现。
@@ -98,13 +98,13 @@ Last confirmed: 2026-10-15，基于分支 `fix/search-timeout-handling`（6dc1e8
 
 ### 2.2 状态捕获与导入
 
-- 导入固定为铁甲：`ES/bindings/slaythespire.cpp:228` 写死 `bc.player.cc = CharacterClass::IRONCLAD`（这会影响发现、随机牌、随机药水用的职业，见 `Actions.cpp:563`、`580`、`588`，`BattleContext.cpp:163`、`2333`、`2898`）。
-- 快照不含宝珠、姿态、保留位：`AG/steam/steam_mcts.py:544-631`（`build_snapshot`）只带血量、格挡、能量、powers、四堆牌、怪物、遗物、药水、随机数。`slaythespire.cpp:61-65`（`snapshotCard`）和 228-380 的玩家导入也没有这些字段。
+- 导入读快照里的职业：`bindings/slaythespire.cpp:63-69` 读 `character`，缺省铁甲，未知名字直接拒绝（`check_snapshot_import.py` 断言四个职业都能过，`SILENT` 这类旧写法被拒）。
+- 快照已含宝珠（M3）、姿态与真言、每张牌的保留位：`steam_mcts.py` 的 `build_snapshot` 总是写 `player.stance` 与 `player.mantra`（没有观者字段时写中立与 0），`card_snapshot` 总是写 `retain`；`bindings/slaythespire.cpp` 的 `snapshotCard` 与 `from_snapshot` 对应读入，四个姿态拼写来自引擎的 `STANCE_NAMES`。Mod 侧仍未导出姿态与保留位，随开职业开关一起做。
 - 游戏侧导出：CommunicationMod 已导出宝珠（`references/CommunicationMod/src/main/java/communicationmod/GameStateConverter.java:735-739`，字段 id、名称、evoke、被动），但不导出姿态，也不导出牌的保留位。`AG/steam/state_export_mod/src/steamstateexport/CombatStatePatch.java:57-97` 补充的是随机数、遗物状态、怪物内部字段，没有这些。`overlay/src/sts1solver/CardExportPatch.java:13-23` 给牌补了费用、伤害、格挡、`misc`，没有保留。
 - 卡牌别名：`steam_mcts.py:18` 的 `CARD_ALIASES` 与 `Distill2.java:89` 只列了 `Strike_R`、`Defend_R`、`Ghostly`。`Strike_G/B/P`、`Defend_G/B/P` 以及 Java ID 与枚举名不一致的牌（如 Underhanded Strike、Gash、Steam、Venomology、Wireheading）需要补，`overlay/test/original-game-ids.json` 只收了 131 个铁甲和无色牌 ID。
 - 牌池导出本身与职业无关：`overlay/src/sts1solver/RecoveryExportPatch.java:41-49` 读取实时牌池，`overlay/backend.py:173-174` 和 `overlay/native.cpp:188-196` 以此覆盖发现和随机牌（`overlay/build_native.py:54-62`）。这一路径换职业后不用改，前提是所有牌 ID 都能映射。
-- 步骤核对只比较血量、格挡、能量、牌堆、怪物、药水、随机数：`steam_mcts.py:676-692`（`assert_snapshot_matches`）与 `AG/sim_patch/parity/adapter.py:128-146`（`simulator_state`）。宝珠、姿态、集中、真言的偏差不会被发现，所以这些字段进入模拟器的同时必须进入核对。
-- Python 绑定没有暴露宝珠和姿态的读取接口（`slaythespire.cpp` 中无相关 def）。
+- 步骤核对比较血量、格挡、能量、牌堆、怪物、药水、随机数，以及宝珠、姿态、真言和每张牌的保留位：`steam_mcts.py` 的 `assert_snapshot_matches` 与 `AG/sim_patch/parity/adapter.py` 的 `simulator_state`、`compare_battle`。故意把观测里的姿态、真言或保留位改错，核对必须变红（`tools/check_watcher_parity.py`）。
+- Python 绑定已暴露 `Player.stance`、`Player.orbs`、`CardInstance.retain` 与 `get_status`，并新增 `STANCE_NAMES`：四个拼写的列表只存在于引擎的 `stanceNames[]`，工具从这里读，不再各写一份。生产端为没有观者字段的捕捉写了缺省的中立拼写这一处例外。
 
 ### 2.3 搜索评估与启发式
 
@@ -147,7 +147,7 @@ Last confirmed: 2026-10-15，基于分支 `fix/search-timeout-handling`（6dc1e8
 - M1d：专属遗物（Snecko Skull、Tingsha、Tough Bandages、Hovering Kite）和药水。
 - M1e：验收集通过后，开静默猎手的支持开关，同步 README 和文案。
 
-**M2 观者（proposed）。** 姿态状态机（ChangeStance、平静退出、真言转神）、预见、Miracle 与 Smite 等衍生牌、Wish、Alpha 链、Establishment、Rushdown 和 Mental Fortress。把 stance 加入导出、快照和核对。
+**M2 观者（proposed）。** 姿态状态机（ChangeStance、平静退出、真言转神）、预见、Miracle 与 Smite 等衍生牌、Wish、Alpha 链、Establishment、Rushdown 和 Mental Fortress。姿态、真言与保留位已进入导出和核对（见 4 节）；Mod 侧快照随开职业开关一起做。
 **M3 故障机器人（proposed）。** 宝珠子系统、Focus 联动、全部机器人牌与遗物。把宝珠加入导出（CommunicationMod 已有）、快照和核对。闪电随机目标的随机数流需要和 Java 逐步对齐。
 
 M2 与 M3 的先后取决于协作者兴趣；若只能选一个，观者规模小于机器人。每个里程碑的职业开关，都只在该职业的验收集通过后才打开。
@@ -174,6 +174,8 @@ M2 与 M3 的先后取决于协作者兴趣；若只能选一个，观者规模�
 ### 与 Java 真值的差分
 
 原版 Java 真值引擎是私有的，不在本仓库里，也不提供给协作者。协作者用自己的游戏搭真值，先用维护者公开的校准用例校准，再用它生成原生夹具；格式、适配器协议和流程见 [真值校准与夹具](truth-calibration.md)。校准观测已包含宝珠和姿态；Mod 的快照导出还没有（见 2.2）。
+
+观者的姿态、真言和每张牌的保留位现在也过同一条边界：`build_snapshot` 总是写出前两项（没有观者字段时写中立与 0），牌条目总是带 `retain`；`compare_battle` 逐项比对。故意把观测里的姿态改错必须变红，由 `tools/check_watcher_parity.py` 守住；四个拼写来自引擎的同一张表（`sts.STANCE_NAMES`），导出再导入的往返测试见 `tools/check_snapshot_import.py`。观者校准集的 1052 个检查点由 `tools/check_calibration_parity.py` 逐个记账：比对了多少、观测不到多少、导不进多少，出现差异的另计一条；这几个数必须等于检查点总数，分母不缩水。「导不进」按成因具名（引擎还没实现的牌、非战斗观测、战斗已结束），比对照出差异才置红。某个检查点虽然整体比对了、但其中一项因为捕捉没记录而被跳过时，那一项单独列在三个数下面，不混进「比对了」。
 
 只读检查结果（未运行）：私有真值引擎的命令行支持选择职业。`HeadlessCli.java:124-127` 把 `new <seed> <CLASS> <ascension>` 里的职业名解析为 `AbstractPlayer.PlayerClass`（SILENT 映射为 THE_SILENT），`GameKernel.java:127` 的 `newRun` 接受任意职业，`unlockAll` 的说明覆盖四个职业。这只证明能开局，三个职业的战斗是否与原版一致没有验证，也没有复制其中任何源码。
 
